@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Windows.Forms;
 
-namespace Sprites
+namespace SpriteEditor
 {
     static class Program
     {

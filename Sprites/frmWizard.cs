@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Windows.Forms;
 
-namespace Sprites
+namespace SpriteEditor
 {
     public partial class frmWizard : Form
     {

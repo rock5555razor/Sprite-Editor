@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics;
 
-namespace Sprites
+namespace SpriteEditor
 {
     class Sprite
     {

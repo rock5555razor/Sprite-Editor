@@ -22,9 +22,9 @@ C:\Users\avian\Documents\Visual Studio 2010\Projects\SpriteEditor\Sprites\bin\De
 C:\Users\avian\Documents\Visual Studio 2010\Projects\SpriteEditor\Sprites\bin\Debug\Newtonsoft.Json.pdb
 C:\Users\avian\Documents\Visual Studio 2010\Projects\SpriteEditor\Sprites\bin\Debug\Newtonsoft.Json.xml
 C:\Users\avian\Documents\Visual Studio 2010\Projects\SpriteEditor\Sprites\obj\x86\Debug\ResolveAssemblyReference.cache
-C:\Users\avian\Documents\Visual Studio 2010\Projects\SpriteEditor\Sprites\obj\x86\Debug\Sprites.frmMain.resources
-C:\Users\avian\Documents\Visual Studio 2010\Projects\SpriteEditor\Sprites\obj\x86\Debug\Sprites.frmPreview.resources
-C:\Users\avian\Documents\Visual Studio 2010\Projects\SpriteEditor\Sprites\obj\x86\Debug\Sprites.frmWizard.resources
-C:\Users\avian\Documents\Visual Studio 2010\Projects\SpriteEditor\Sprites\obj\x86\Debug\Sprites.Properties.Resources.resources
 C:\Users\avian\Documents\Visual Studio 2010\Projects\SpriteEditor\Sprites\obj\x86\Debug\GenerateResource.read.1.tlog
 C:\Users\avian\Documents\Visual Studio 2010\Projects\SpriteEditor\Sprites\obj\x86\Debug\GenerateResource.write.1.tlog
+C:\Users\avian\Documents\Visual Studio 2010\Projects\SpriteEditor\Sprites\obj\x86\Debug\SpriteEditor.frmMain.resources
+C:\Users\avian\Documents\Visual Studio 2010\Projects\SpriteEditor\Sprites\obj\x86\Debug\SpriteEditor.frmPreview.resources
+C:\Users\avian\Documents\Visual Studio 2010\Projects\SpriteEditor\Sprites\obj\x86\Debug\SpriteEditor.frmWizard.resources
+C:\Users\avian\Documents\Visual Studio 2010\Projects\SpriteEditor\Sprites\obj\x86\Debug\SpriteEditor.Properties.Resources.resources

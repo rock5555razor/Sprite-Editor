@@ -1,4 +1,4 @@
-﻿namespace Sprites
+﻿namespace SpriteEditor
 {
     partial class frmPreview
     {

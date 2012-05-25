@@ -1,4 +1,4 @@
-﻿﻿namespace Sprites
+﻿﻿namespace SpriteEditor
  {
      partial class frmMain
      {
@@ -156,7 +156,7 @@
             // 
             // newFileMenuItem
             // 
-            this.newFileMenuItem.Image = global::Sprites.Properties.Resources.Page;
+            this.newFileMenuItem.Image = global::SpriteEditor.Properties.Resources.Page;
             this.newFileMenuItem.Name = "newFileMenuItem";
             this.newFileMenuItem.Size = new System.Drawing.Size(135, 22);
             this.newFileMenuItem.Text = "&New";
@@ -164,7 +164,7 @@
             // 
             // importFileMenuItem
             // 
-            this.importFileMenuItem.Image = global::Sprites.Properties.Resources.FolderOpen_32x32_72;
+            this.importFileMenuItem.Image = global::SpriteEditor.Properties.Resources.FolderOpen_32x32_72;
             this.importFileMenuItem.Name = "importFileMenuItem";
             this.importFileMenuItem.Size = new System.Drawing.Size(135, 22);
             this.importFileMenuItem.Text = "&Open";
@@ -172,7 +172,7 @@
             // 
             // saveFileMenuItem
             // 
-            this.saveFileMenuItem.Image = global::Sprites.Properties.Resources.FloppyDisk;
+            this.saveFileMenuItem.Image = global::SpriteEditor.Properties.Resources.FloppyDisk;
             this.saveFileMenuItem.Name = "saveFileMenuItem";
             this.saveFileMenuItem.Size = new System.Drawing.Size(135, 22);
             this.saveFileMenuItem.Text = "&Save As";
@@ -218,7 +218,7 @@
             // 
             // manualEntryToolStripMenuItem1
             // 
-            this.manualEntryToolStripMenuItem1.Image = global::Sprites.Properties.Resources.Rename;
+            this.manualEntryToolStripMenuItem1.Image = global::SpriteEditor.Properties.Resources.Rename;
             this.manualEntryToolStripMenuItem1.Name = "manualEntryToolStripMenuItem1";
             this.manualEntryToolStripMenuItem1.Size = new System.Drawing.Size(148, 22);
             this.manualEntryToolStripMenuItem1.Text = "Manual Entry";
@@ -240,7 +240,7 @@
             // 
             // grabColorToolStripMenuItem1
             // 
-            this.grabColorToolStripMenuItem1.Image = global::Sprites.Properties.Resources.color;
+            this.grabColorToolStripMenuItem1.Image = global::SpriteEditor.Properties.Resources.color;
             this.grabColorToolStripMenuItem1.Name = "grabColorToolStripMenuItem1";
             this.grabColorToolStripMenuItem1.Size = new System.Drawing.Size(148, 22);
             this.grabColorToolStripMenuItem1.Text = "Grab Color";
@@ -248,7 +248,7 @@
             // 
             // useImageURIToolStripMenuItem
             // 
-            this.useImageURIToolStripMenuItem.Image = global::Sprites.Properties.Resources.generic_picture;
+            this.useImageURIToolStripMenuItem.Image = global::SpriteEditor.Properties.Resources.generic_picture;
             this.useImageURIToolStripMenuItem.Name = "useImageURIToolStripMenuItem";
             this.useImageURIToolStripMenuItem.Size = new System.Drawing.Size(148, 22);
             this.useImageURIToolStripMenuItem.Text = "Use Image URI";
@@ -264,7 +264,7 @@
             this.statesToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.addStateToolStripMenuItem,
             this.deleteStateToolStripMenuItem});
-            this.statesToolStripMenuItem.Image = global::Sprites.Properties.Resources.favicon;
+            this.statesToolStripMenuItem.Image = global::SpriteEditor.Properties.Resources.favicon;
             this.statesToolStripMenuItem.Name = "statesToolStripMenuItem";
             this.statesToolStripMenuItem.Size = new System.Drawing.Size(148, 22);
             this.statesToolStripMenuItem.Text = "States";
@@ -272,14 +272,14 @@
             // 
             // addStateToolStripMenuItem
             // 
-            this.addStateToolStripMenuItem.Image = global::Sprites.Properties.Resources.plus;
+            this.addStateToolStripMenuItem.Image = global::SpriteEditor.Properties.Resources.plus;
             this.addStateToolStripMenuItem.Name = "addStateToolStripMenuItem";
             this.addStateToolStripMenuItem.Size = new System.Drawing.Size(136, 22);
             this.addStateToolStripMenuItem.Text = "Add State";
             // 
             // deleteStateToolStripMenuItem
             // 
-            this.deleteStateToolStripMenuItem.Image = global::Sprites.Properties.Resources.delete;
+            this.deleteStateToolStripMenuItem.Image = global::SpriteEditor.Properties.Resources.delete;
             this.deleteStateToolStripMenuItem.Name = "deleteStateToolStripMenuItem";
             this.deleteStateToolStripMenuItem.Size = new System.Drawing.Size(136, 22);
             this.deleteStateToolStripMenuItem.Text = "Delete State";
@@ -296,14 +296,14 @@
             // 
             // addParameterToolStripMenuItem
             // 
-            this.addParameterToolStripMenuItem.Image = global::Sprites.Properties.Resources.plus;
+            this.addParameterToolStripMenuItem.Image = global::SpriteEditor.Properties.Resources.plus;
             this.addParameterToolStripMenuItem.Name = "addParameterToolStripMenuItem";
             this.addParameterToolStripMenuItem.Size = new System.Drawing.Size(161, 22);
             this.addParameterToolStripMenuItem.Text = "Add Parameter";
             // 
             // deleteParameterToolStripMenuItem
             // 
-            this.deleteParameterToolStripMenuItem.Image = global::Sprites.Properties.Resources.delete;
+            this.deleteParameterToolStripMenuItem.Image = global::SpriteEditor.Properties.Resources.delete;
             this.deleteParameterToolStripMenuItem.Name = "deleteParameterToolStripMenuItem";
             this.deleteParameterToolStripMenuItem.Size = new System.Drawing.Size(161, 22);
             this.deleteParameterToolStripMenuItem.Text = "Delete Parameter";
@@ -327,7 +327,7 @@
             // 
             // openImageToolStripMenuItem
             // 
-            this.openImageToolStripMenuItem.Image = global::Sprites.Properties.Resources.FolderOpen_32x32_72;
+            this.openImageToolStripMenuItem.Image = global::SpriteEditor.Properties.Resources.FolderOpen_32x32_72;
             this.openImageToolStripMenuItem.Name = "openImageToolStripMenuItem";
             this.openImageToolStripMenuItem.Size = new System.Drawing.Size(151, 22);
             this.openImageToolStripMenuItem.Text = "Open Image";
@@ -337,7 +337,7 @@
             // 
             this.loadedImagesToolStripMenuItem.Image = ((System.Drawing.Image)(resources.GetObject("loadedImagesToolStripMenuItem.Image")));
             this.loadedImagesToolStripMenuItem.Name = "loadedImagesToolStripMenuItem";
-            this.loadedImagesToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.loadedImagesToolStripMenuItem.Size = new System.Drawing.Size(151, 22);
             this.loadedImagesToolStripMenuItem.Text = "Loaded Images";
             // 
             // toolStripSeparator2
@@ -347,7 +347,7 @@
             // 
             // zoomInToolStripMenuItem
             // 
-            this.zoomInToolStripMenuItem.Image = global::Sprites.Properties.Resources._2392_ZoomIn_48x48;
+            this.zoomInToolStripMenuItem.Image = global::SpriteEditor.Properties.Resources._2392_ZoomIn_48x48;
             this.zoomInToolStripMenuItem.Name = "zoomInToolStripMenuItem";
             this.zoomInToolStripMenuItem.Size = new System.Drawing.Size(151, 22);
             this.zoomInToolStripMenuItem.Text = "Zoom &In";
@@ -355,7 +355,7 @@
             // 
             // zoomOutToolStripMenuItem
             // 
-            this.zoomOutToolStripMenuItem.Image = global::Sprites.Properties.Resources._2391_ZoomOut;
+            this.zoomOutToolStripMenuItem.Image = global::SpriteEditor.Properties.Resources._2391_ZoomOut;
             this.zoomOutToolStripMenuItem.Name = "zoomOutToolStripMenuItem";
             this.zoomOutToolStripMenuItem.Size = new System.Drawing.Size(151, 22);
             this.zoomOutToolStripMenuItem.Text = "Zoom &Out";
@@ -363,7 +363,7 @@
             // 
             // actualSizeToolStripMenuItem
             // 
-            this.actualSizeToolStripMenuItem.Image = global::Sprites.Properties.Resources.search;
+            this.actualSizeToolStripMenuItem.Image = global::SpriteEditor.Properties.Resources.search;
             this.actualSizeToolStripMenuItem.Name = "actualSizeToolStripMenuItem";
             this.actualSizeToolStripMenuItem.Size = new System.Drawing.Size(151, 22);
             this.actualSizeToolStripMenuItem.Text = "&Actual Size";
@@ -376,7 +376,7 @@
             // 
             // hideTreeToolStripMenuItem
             // 
-            this.hideTreeToolStripMenuItem.Image = global::Sprites.Properties.Resources.XSDSchema_GraphLeftToRight;
+            this.hideTreeToolStripMenuItem.Image = global::SpriteEditor.Properties.Resources.XSDSchema_GraphLeftToRight;
             this.hideTreeToolStripMenuItem.Name = "hideTreeToolStripMenuItem";
             this.hideTreeToolStripMenuItem.Size = new System.Drawing.Size(151, 22);
             this.hideTreeToolStripMenuItem.Text = "Hide Tree";
@@ -397,7 +397,7 @@
             // 
             // spritePreviewToolStripMenuItem
             // 
-            this.spritePreviewToolStripMenuItem.Image = global::Sprites.Properties.Resources.search;
+            this.spritePreviewToolStripMenuItem.Image = global::SpriteEditor.Properties.Resources.search;
             this.spritePreviewToolStripMenuItem.Name = "spritePreviewToolStripMenuItem";
             this.spritePreviewToolStripMenuItem.Size = new System.Drawing.Size(162, 22);
             this.spritePreviewToolStripMenuItem.Text = "Sprite Preview";
@@ -405,7 +405,7 @@
             // 
             // testSpriteToolStripMenuItem
             // 
-            this.testSpriteToolStripMenuItem.Image = global::Sprites.Properties.Resources.favicon;
+            this.testSpriteToolStripMenuItem.Image = global::SpriteEditor.Properties.Resources.favicon;
             this.testSpriteToolStripMenuItem.Name = "testSpriteToolStripMenuItem";
             this.testSpriteToolStripMenuItem.Size = new System.Drawing.Size(162, 22);
             this.testSpriteToolStripMenuItem.Text = "Test Sprite";
@@ -418,7 +418,7 @@
             // 
             // prettifySPRToolStripMenuItem
             // 
-            this.prettifySPRToolStripMenuItem.Image = global::Sprites.Properties.Resources.XSDSchema_NameSpaceIcon;
+            this.prettifySPRToolStripMenuItem.Image = global::SpriteEditor.Properties.Resources.XSDSchema_NameSpaceIcon;
             this.prettifySPRToolStripMenuItem.Name = "prettifySPRToolStripMenuItem";
             this.prettifySPRToolStripMenuItem.Size = new System.Drawing.Size(162, 22);
             this.prettifySPRToolStripMenuItem.Text = "&Prettify SPR";
@@ -429,7 +429,7 @@
             // 
             // grabHTMLValueToolStripMenuItem
             // 
-            this.grabHTMLValueToolStripMenuItem.Image = global::Sprites.Properties.Resources.color;
+            this.grabHTMLValueToolStripMenuItem.Image = global::SpriteEditor.Properties.Resources.color;
             this.grabHTMLValueToolStripMenuItem.Name = "grabHTMLValueToolStripMenuItem";
             this.grabHTMLValueToolStripMenuItem.Size = new System.Drawing.Size(162, 22);
             this.grabHTMLValueToolStripMenuItem.Text = "Grab &HTML Value";
@@ -461,7 +461,7 @@
             // 
             // visitSpriteForumsToolStripMenuItem
             // 
-            this.visitSpriteForumsToolStripMenuItem.Image = global::Sprites.Properties.Resources.favicon;
+            this.visitSpriteForumsToolStripMenuItem.Image = global::SpriteEditor.Properties.Resources.favicon;
             this.visitSpriteForumsToolStripMenuItem.Name = "visitSpriteForumsToolStripMenuItem";
             this.visitSpriteForumsToolStripMenuItem.Size = new System.Drawing.Size(183, 22);
             this.visitSpriteForumsToolStripMenuItem.Text = "Submit Sprite";
@@ -469,7 +469,7 @@
             // 
             // aboutToolStripMenuItem
             // 
-            this.aboutToolStripMenuItem.Image = global::Sprites.Properties.Resources.spriteeditor;
+            this.aboutToolStripMenuItem.Image = global::SpriteEditor.Properties.Resources.spriteeditor;
             this.aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
             this.aboutToolStripMenuItem.Size = new System.Drawing.Size(183, 22);
             this.aboutToolStripMenuItem.Text = "About";
@@ -524,7 +524,7 @@
             // 
             this.splitContainer1.Panel2.Controls.Add(this.treeView);
             this.splitContainer1.Size = new System.Drawing.Size(834, 428);
-            this.splitContainer1.SplitterDistance = 610;
+            this.splitContainer1.SplitterDistance = 611;
             this.splitContainer1.SplitterWidth = 3;
             this.splitContainer1.TabIndex = 5;
             // 
@@ -546,7 +546,7 @@
             // 
             this.imageDisplay.BackColor = System.Drawing.Color.Transparent;
             this.imageDisplay.Cursor = System.Windows.Forms.Cursors.Cross;
-            this.imageDisplay.Image = global::Sprites.Properties.Resources.sprite3;
+            this.imageDisplay.Image = global::SpriteEditor.Properties.Resources.sprite3;
             this.imageDisplay.InitialImage = null;
             this.imageDisplay.Location = new System.Drawing.Point(0, 0);
             this.imageDisplay.Name = "imageDisplay";
@@ -564,9 +564,9 @@
             this.treeView.FullRowSelect = true;
             this.treeView.HideSelection = false;
             this.treeView.LabelEdit = true;
-            this.treeView.Location = new System.Drawing.Point(5, 5);
+            this.treeView.Location = new System.Drawing.Point(0, 0);
             this.treeView.Name = "treeView";
-            this.treeView.Size = new System.Drawing.Size(207, 414);
+            this.treeView.Size = new System.Drawing.Size(216, 424);
             this.treeView.TabIndex = 5;
             this.treeView.NodeMouseClick += new System.Windows.Forms.TreeNodeMouseClickEventHandler(this.treeView_OnNodeMouseClick);
             // 
@@ -582,7 +582,7 @@
             // 
             // addStateMenuItem
             // 
-            this.addStateMenuItem.Image = global::Sprites.Properties.Resources.plus;
+            this.addStateMenuItem.Image = global::SpriteEditor.Properties.Resources.plus;
             this.addStateMenuItem.Name = "addStateMenuItem";
             this.addStateMenuItem.Size = new System.Drawing.Size(152, 22);
             this.addStateMenuItem.Text = "Add State";
@@ -594,7 +594,7 @@
             // 
             // toolStripMenuItem1
             // 
-            this.toolStripMenuItem1.Image = global::Sprites.Properties.Resources.XSDSchema_GraphLeftToRight;
+            this.toolStripMenuItem1.Image = global::SpriteEditor.Properties.Resources.XSDSchema_GraphLeftToRight;
             this.toolStripMenuItem1.Name = "toolStripMenuItem1";
             this.toolStripMenuItem1.Size = new System.Drawing.Size(152, 22);
             this.toolStripMenuItem1.Text = "Expand All";
@@ -621,7 +621,7 @@
             // 
             // editStateMenuItem
             // 
-            this.editStateMenuItem.Image = global::Sprites.Properties.Resources.Rename;
+            this.editStateMenuItem.Image = global::SpriteEditor.Properties.Resources.Rename;
             this.editStateMenuItem.Name = "editStateMenuItem";
             this.editStateMenuItem.Size = new System.Drawing.Size(149, 22);
             this.editStateMenuItem.Text = "Edit";
@@ -629,14 +629,14 @@
             // 
             // addParameterMenuItem
             // 
-            this.addParameterMenuItem.Image = global::Sprites.Properties.Resources.plus;
+            this.addParameterMenuItem.Image = global::SpriteEditor.Properties.Resources.plus;
             this.addParameterMenuItem.Name = "addParameterMenuItem";
             this.addParameterMenuItem.Size = new System.Drawing.Size(149, 22);
             this.addParameterMenuItem.Text = "Add Parameter";
             // 
             // deletToolStripMenuItem
             // 
-            this.deletToolStripMenuItem.Image = global::Sprites.Properties.Resources.delete;
+            this.deletToolStripMenuItem.Image = global::SpriteEditor.Properties.Resources.delete;
             this.deletToolStripMenuItem.Name = "deletToolStripMenuItem";
             this.deletToolStripMenuItem.Size = new System.Drawing.Size(149, 22);
             this.deletToolStripMenuItem.Text = "Delete State";
@@ -649,7 +649,7 @@
             // 
             // toolStripMenuItem4
             // 
-            this.toolStripMenuItem4.Image = global::Sprites.Properties.Resources.XSDSchema_GraphLeftToRight;
+            this.toolStripMenuItem4.Image = global::SpriteEditor.Properties.Resources.XSDSchema_GraphLeftToRight;
             this.toolStripMenuItem4.Name = "toolStripMenuItem4";
             this.toolStripMenuItem4.Size = new System.Drawing.Size(149, 22);
             this.toolStripMenuItem4.Text = "Expand All";
@@ -680,7 +680,7 @@
             // 
             // editValueMenuItem
             // 
-            this.editValueMenuItem.Image = global::Sprites.Properties.Resources.Rename;
+            this.editValueMenuItem.Image = global::SpriteEditor.Properties.Resources.Rename;
             this.editValueMenuItem.Name = "editValueMenuItem";
             this.editValueMenuItem.Size = new System.Drawing.Size(148, 22);
             this.editValueMenuItem.Text = "Edit";
@@ -688,7 +688,7 @@
             // 
             // deleteParameterMenuItem
             // 
-            this.deleteParameterMenuItem.Image = global::Sprites.Properties.Resources.delete;
+            this.deleteParameterMenuItem.Image = global::SpriteEditor.Properties.Resources.delete;
             this.deleteParameterMenuItem.Name = "deleteParameterMenuItem";
             this.deleteParameterMenuItem.Size = new System.Drawing.Size(148, 22);
             this.deleteParameterMenuItem.Text = "Delete";
@@ -715,7 +715,7 @@
             // 
             // grabColorMenuItem
             // 
-            this.grabColorMenuItem.Image = global::Sprites.Properties.Resources.color;
+            this.grabColorMenuItem.Image = global::SpriteEditor.Properties.Resources.color;
             this.grabColorMenuItem.Name = "grabColorMenuItem";
             this.grabColorMenuItem.Size = new System.Drawing.Size(148, 22);
             this.grabColorMenuItem.Text = "Grab Color";
@@ -736,7 +736,7 @@
             // 
             // toolStripMenuItem7
             // 
-            this.toolStripMenuItem7.Image = global::Sprites.Properties.Resources.XSDSchema_GraphLeftToRight;
+            this.toolStripMenuItem7.Image = global::SpriteEditor.Properties.Resources.XSDSchema_GraphLeftToRight;
             this.toolStripMenuItem7.Name = "toolStripMenuItem7";
             this.toolStripMenuItem7.Size = new System.Drawing.Size(148, 22);
             this.toolStripMenuItem7.Text = "Expand All";
@@ -762,7 +762,7 @@
             // 
             // addNewGroupToolStripMenuItem
             // 
-            this.addNewGroupToolStripMenuItem.Image = global::Sprites.Properties.Resources.plus;
+            this.addNewGroupToolStripMenuItem.Image = global::SpriteEditor.Properties.Resources.plus;
             this.addNewGroupToolStripMenuItem.Name = "addNewGroupToolStripMenuItem";
             this.addNewGroupToolStripMenuItem.Size = new System.Drawing.Size(157, 22);
             this.addNewGroupToolStripMenuItem.Text = "Add New Group";
@@ -770,7 +770,7 @@
             // 
             // deleteToolStripMenuItem
             // 
-            this.deleteToolStripMenuItem.Image = global::Sprites.Properties.Resources.delete;
+            this.deleteToolStripMenuItem.Image = global::SpriteEditor.Properties.Resources.delete;
             this.deleteToolStripMenuItem.Name = "deleteToolStripMenuItem";
             this.deleteToolStripMenuItem.Size = new System.Drawing.Size(157, 22);
             this.deleteToolStripMenuItem.Text = "Delete";
@@ -783,7 +783,7 @@
             // 
             // toolStripMenuItem3
             // 
-            this.toolStripMenuItem3.Image = global::Sprites.Properties.Resources.XSDSchema_GraphLeftToRight;
+            this.toolStripMenuItem3.Image = global::SpriteEditor.Properties.Resources.XSDSchema_GraphLeftToRight;
             this.toolStripMenuItem3.Name = "toolStripMenuItem3";
             this.toolStripMenuItem3.Size = new System.Drawing.Size(157, 22);
             this.toolStripMenuItem3.Text = "Expand All";
