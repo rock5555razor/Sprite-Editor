@@ -1,0 +1,14 @@
+C:\Users\avian\Documents\Visual Studio 2010\Projects\aviansprites\Sprites\bin\Release\Sprites.exe.config
+C:\Users\avian\Documents\Visual Studio 2010\Projects\aviansprites\Sprites\bin\Release\Sprites.exe
+C:\Users\avian\Documents\Visual Studio 2010\Projects\aviansprites\Sprites\bin\Release\Sprites.pdb
+C:\Users\avian\Documents\Visual Studio 2010\Projects\aviansprites\Sprites\bin\Release\Newtonsoft.Json.dll
+C:\Users\avian\Documents\Visual Studio 2010\Projects\aviansprites\Sprites\bin\Release\Newtonsoft.Json.pdb
+C:\Users\avian\Documents\Visual Studio 2010\Projects\aviansprites\Sprites\bin\Release\Newtonsoft.Json.xml
+C:\Users\avian\Documents\Visual Studio 2010\Projects\aviansprites\Sprites\obj\x86\Release\ResolveAssemblyReference.cache
+C:\Users\avian\Documents\Visual Studio 2010\Projects\aviansprites\Sprites\obj\x86\Release\Sprites.frmMain.resources
+C:\Users\avian\Documents\Visual Studio 2010\Projects\aviansprites\Sprites\obj\x86\Release\Sprites.frmProperties.resources
+C:\Users\avian\Documents\Visual Studio 2010\Projects\aviansprites\Sprites\obj\x86\Release\Sprites.Properties.Resources.resources
+C:\Users\avian\Documents\Visual Studio 2010\Projects\aviansprites\Sprites\obj\x86\Release\GenerateResource.read.1.tlog
+C:\Users\avian\Documents\Visual Studio 2010\Projects\aviansprites\Sprites\obj\x86\Release\GenerateResource.write.1.tlog
+C:\Users\avian\Documents\Visual Studio 2010\Projects\aviansprites\Sprites\obj\x86\Release\Sprites.exe
+C:\Users\avian\Documents\Visual Studio 2010\Projects\aviansprites\Sprites\obj\x86\Release\Sprites.pdb
