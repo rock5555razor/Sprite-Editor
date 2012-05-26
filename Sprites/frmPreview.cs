@@ -12,8 +12,8 @@ namespace SpriteEditor
 {
     public partial class frmPreview : Form
     {
-        private List<string> imageFileLocations;
-        private List<Bitmap> imageBitmaps;
+        private List<string> _imageFileLocations;
+        private List<Bitmap> _imageBitmaps;
 
         public frmPreview()
         {
@@ -27,8 +27,8 @@ namespace SpriteEditor
             {
                 cmbStateToPreview.ComboBox.Items.Add(i.Substring(i.LastIndexOf("\\") + 1));
             }
-            imageBitmaps = images;
-            imageFileLocations = imageLocations;
+            _imageBitmaps = images;
+            _imageFileLocations = imageLocations;
         }
 
         private void frmPreview_Load(object sender, EventArgs e)
@@ -38,7 +38,7 @@ namespace SpriteEditor
 
         private void cmbStateToPreview_SelectedIndexChanged(object sender, EventArgs e)
         {
-            previewBox.Image = imageBitmaps[cmbStateToPreview.SelectedIndex];
+            previewBox.Image = _imageBitmaps[cmbStateToPreview.SelectedIndex];
         }
     }
 }

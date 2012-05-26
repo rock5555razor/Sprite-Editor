@@ -81,6 +81,7 @@
             this.treeView = new System.Windows.Forms.TreeView();
             this.treeFileContextMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.addStateMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripMenuItem6 = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator7 = new System.Windows.Forms.ToolStripSeparator();
             this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem2 = new System.Windows.Forms.ToolStripMenuItem();
@@ -268,7 +269,6 @@
             this.statesToolStripMenuItem.Name = "statesToolStripMenuItem";
             this.statesToolStripMenuItem.Size = new System.Drawing.Size(148, 22);
             this.statesToolStripMenuItem.Text = "States";
-            this.statesToolStripMenuItem.MouseHover += new System.EventHandler(this.statesToolStripMenuItem_MouseHover);
             // 
             // addStateToolStripMenuItem
             // 
@@ -524,7 +524,7 @@
             // 
             this.splitContainer1.Panel2.Controls.Add(this.treeView);
             this.splitContainer1.Size = new System.Drawing.Size(834, 428);
-            this.splitContainer1.SplitterDistance = 611;
+            this.splitContainer1.SplitterDistance = 614;
             this.splitContainer1.SplitterWidth = 3;
             this.splitContainer1.TabIndex = 5;
             // 
@@ -532,7 +532,7 @@
             // 
             this.zoomSlider.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.zoomSlider.LargeChange = 1;
-            this.zoomSlider.Location = new System.Drawing.Point(569, 369);
+            this.zoomSlider.Location = new System.Drawing.Point(571, 369);
             this.zoomSlider.Maximum = 8;
             this.zoomSlider.Minimum = 1;
             this.zoomSlider.Name = "zoomSlider";
@@ -566,7 +566,7 @@
             this.treeView.LabelEdit = true;
             this.treeView.Location = new System.Drawing.Point(0, 0);
             this.treeView.Name = "treeView";
-            this.treeView.Size = new System.Drawing.Size(216, 424);
+            this.treeView.Size = new System.Drawing.Size(213, 424);
             this.treeView.TabIndex = 5;
             this.treeView.NodeMouseClick += new System.Windows.Forms.TreeNodeMouseClickEventHandler(this.treeView_OnNodeMouseClick);
             // 
@@ -574,11 +574,12 @@
             // 
             this.treeFileContextMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.addStateMenuItem,
+            this.toolStripMenuItem6,
             this.toolStripSeparator7,
             this.toolStripMenuItem1,
             this.toolStripMenuItem2});
             this.treeFileContextMenu.Name = "contextMenuStrip1";
-            this.treeFileContextMenu.Size = new System.Drawing.Size(135, 76);
+            this.treeFileContextMenu.Size = new System.Drawing.Size(137, 98);
             // 
             // addStateMenuItem
             // 
@@ -586,6 +587,14 @@
             this.addStateMenuItem.Name = "addStateMenuItem";
             this.addStateMenuItem.Size = new System.Drawing.Size(152, 22);
             this.addStateMenuItem.Text = "Add State";
+            // 
+            // toolStripMenuItem6
+            // 
+            this.toolStripMenuItem6.Image = global::SpriteEditor.Properties.Resources.Rename;
+            this.toolStripMenuItem6.Name = "toolStripMenuItem6";
+            this.toolStripMenuItem6.Size = new System.Drawing.Size(152, 22);
+            this.toolStripMenuItem6.Text = "Rename File";
+            this.toolStripMenuItem6.Click += new System.EventHandler(this.manualEntryToolStripMenuItem1_Click);
             // 
             // toolStripSeparator7
             // 
@@ -910,6 +919,7 @@
          private System.Windows.Forms.ToolStripMenuItem deleteParameterMenuItem;
          private System.Windows.Forms.ToolStripSeparator toolStripSeparator11;
          private System.Windows.Forms.ToolStripMenuItem deletToolStripMenuItem;
+         private System.Windows.Forms.ToolStripMenuItem toolStripMenuItem6;
      }
  }
 
