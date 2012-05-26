@@ -1,12 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
-using System.Linq;
-using System.Text;
 using System.Windows.Forms;
-using System.Diagnostics;
 
 namespace SpriteEditor
 {
@@ -25,7 +20,8 @@ namespace SpriteEditor
             InitializeComponent();
             foreach (string i in imageLocations)
             {
-                cmbStateToPreview.ComboBox.Items.Add(i.Substring(i.LastIndexOf("\\") + 1));
+                if (cmbStateToPreview.ComboBox != null)
+                    cmbStateToPreview.ComboBox.Items.Add(i.Substring(i.LastIndexOf("\\", StringComparison.Ordinal) + 1));
             }
             _imageBitmaps = images;
             _imageFileLocations = imageLocations;
