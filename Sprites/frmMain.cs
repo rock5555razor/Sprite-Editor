@@ -9,6 +9,7 @@ using System.Text;
 using System.Windows.Forms;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Collections;
 
 namespace SpriteEditor
 {
@@ -93,6 +94,7 @@ namespace SpriteEditor
                 DialogResult result = openFile.ShowDialog();
                 if (result == DialogResult.OK)
                     loadSprite(openFile.FileName);
+                treeView.TreeViewNodeSorter = new NodeSorter();
             }
             catch (FileNotFoundException ex)
             {
@@ -113,9 +115,9 @@ namespace SpriteEditor
 
             // deserialize jsonString into Sprite instance and add tree root
             Sprite sprizite = JsonConvert.DeserializeObject<Sprite>(jsonString);
-            sprizite.FileName = fileLocation;
-            sprizite.SafeFileName = getFileNameFromPath(fileLocation);
-            treeView.Nodes.Add(getNewNode(sprizite.SafeFileName, "File"));
+            sprizite.fileName = fileLocation;
+            sprizite.safeFileName = getFileNameFromPath(fileLocation);
+            treeView.Nodes.Add(getNewNode(sprizite.safeFileName, "File"));
 
             // get list of states and iterate over states
             List<string> validatedStateList = getStatesFromJSONString(jsonString);
@@ -129,7 +131,7 @@ namespace SpriteEditor
                 if (state.Equals("SPRITE_META_DATA") || state.Equals("SPRITE_STATE_DEFAULT"))
                 {
                     // list the properties to populate
-                    List<string> propList = sprizite.GetNonNullProperties(state.Equals("SPRITE_META_DATA") ? "meta" : "default", sprizite);
+                    List<string> propList = sprizite.getNonNullProperties(state.Equals("SPRITE_META_DATA") ? "meta" : "default", sprizite);
 
                     // add parameterName nodes for each state
                     foreach (string vs in propList)
@@ -158,57 +160,85 @@ namespace SpriteEditor
                                 for (int z = 0; z < sprizite.SPRITE_META_DATA.credits.Count; z++)
                                 {
                                     treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes.Add(getNewNode("[" + (z + 1) + "]", "Index"));
-                                    treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes.Add(getNewNode("author", "Parameter"));
-                                    treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes.Add(getNewNode("description", "Parameter"));
-                                    treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes.Add(getNewNode("url", "Parameter"));
+
                                     if (sprizite.SPRITE_META_DATA.credits[z].author != null)
+                                    {
+                                        treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes.Add(getNewNode("author", "Parameter"));
                                         treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes[0].Nodes.Add(getNewNode(sprizite.SPRITE_META_DATA.credits[z].author, "Value"));
+                                    }
                                     if (sprizite.SPRITE_META_DATA.credits[z].description != null)
+                                    {
+                                        treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes.Add(getNewNode("description", "Parameter"));
                                         treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes[1].Nodes.Add(getNewNode(sprizite.SPRITE_META_DATA.credits[z].description, "Value"));
+                                    }
                                     if (sprizite.SPRITE_META_DATA.credits[z].url != null)
+                                    {
+                                        treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes.Add(getNewNode("url", "Parameter"));
                                         treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes[2].Nodes.Add(getNewNode(sprizite.SPRITE_META_DATA.credits[z].url, "Value"));
+                                    }
                                 }
-                                k++; continue;
+                                k++;
+                                continue;
                             }
                             if (prop.Equals("fixtures"))
                             {
                                 for (int z = 0; z < sprizite.SPRITE_STATE_DEFAULT.fixtures.Count; z++)
                                 {
                                     treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes.Add(getNewNode("[" + (z + 1) + "]", "Index"));
-                                    treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes.Add(getNewNode("x", "Parameter"));
-                                    treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes.Add(getNewNode("y", "Parameter"));
-                                    treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes.Add(getNewNode("w", "Parameter"));
-                                    treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes.Add(getNewNode("h", "Parameter"));
+
                                     if (sprizite.SPRITE_STATE_DEFAULT.fixtures[z].x != null)
+                                    {
+                                        treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes.Add(getNewNode("x", "Parameter"));
                                         treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes[0].Nodes.Add(getNewNode(sprizite.SPRITE_STATE_DEFAULT.fixtures[z].x, "Value"));
+                                    }
                                     if (sprizite.SPRITE_STATE_DEFAULT.fixtures[z].y != null)
+                                    {
+                                        treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes.Add(getNewNode("y", "Parameter"));
                                         treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes[1].Nodes.Add(getNewNode(sprizite.SPRITE_STATE_DEFAULT.fixtures[z].y, "Value"));
+                                    }
                                     if (sprizite.SPRITE_STATE_DEFAULT.fixtures[z].w != null)
+                                    {
+                                        treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes.Add(getNewNode("w", "Parameter"));
                                         treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes[2].Nodes.Add(getNewNode(sprizite.SPRITE_STATE_DEFAULT.fixtures[z].w, "Value"));
+                                    }
                                     if (sprizite.SPRITE_STATE_DEFAULT.fixtures[z].h != null)
+                                    {
+                                        treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes.Add(getNewNode("h", "Parameter"));
                                         treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes[3].Nodes.Add(getNewNode(sprizite.SPRITE_STATE_DEFAULT.fixtures[z].h, "Value"));
+                                    }
                                 }
-                                k++; continue;
+                                k++;
+                                continue;
                             }
                             if (prop.Equals("spawn"))
                             {
                                 for (int z = 0; z < sprizite.SPRITE_META_DATA.spawn.Count; z++)
                                 {
                                     treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes.Add(getNewNode("[" + (z + 1) + "]", "Index"));
-                                    treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes.Add(getNewNode("uri", "Parameter"));
-                                    treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes.Add(getNewNode("spawnX", "Parameter"));
-                                    treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes.Add(getNewNode("spawnY", "Parameter"));
-                                    treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes.Add(getNewNode("spawnExplode", "Parameter"));
+                                    
                                     if (sprizite.SPRITE_META_DATA.spawn[z].uri != null)
+                                    {
+                                        treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes.Add(getNewNode("uri", "Parameter"));
                                         treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes[0].Nodes.Add(getNewNode(sprizite.SPRITE_META_DATA.spawn[z].uri, "Value"));
+                                    }
                                     if (sprizite.SPRITE_META_DATA.spawn[z].spawnX != null)
+                                    {
+                                        treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes.Add(getNewNode("spawnX", "Parameter"));
                                         treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes[1].Nodes.Add(getNewNode(sprizite.SPRITE_META_DATA.spawn[z].spawnX, "Value"));
+                                    }
                                     if (sprizite.SPRITE_META_DATA.spawn[z].spawnY != null)
+                                    {
+                                        treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes.Add(getNewNode("spawnY", "Parameter"));
                                         treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes[2].Nodes.Add(getNewNode(sprizite.SPRITE_META_DATA.spawn[z].spawnY, "Value"));
+                                    }
                                     if (sprizite.SPRITE_META_DATA.spawn[z].spawnExplode != null)
+                                    {
+                                        treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes.Add(getNewNode("spawnExplode", "Parameter"));
                                         treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes[3].Nodes.Add(getNewNode(sprizite.SPRITE_META_DATA.spawn[z].spawnExplode, "Value"));
+                                    }
                                 }
-                                k++; continue;
+                                k++;
+                                continue;
                             }
 
                             // process arrays
@@ -253,12 +283,12 @@ namespace SpriteEditor
                     string propValue = ((JProperty)iteratorToken).Value.ToString();
                     treeView.Nodes[0].Nodes[stateNodeIndex].Nodes.Add(getNewNode(propName, "Parameter"));
                     treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[j].Nodes.Add(getNewNode(propValue, "Value"));
-                    addThis.SetParameter(propName, propValue);
+                    addThis.setParameter(propName, propValue);
 
                     j++;
                     iteratorToken = iteratorToken.Next;
                 }
-                sprizite.AddNewState(addThis);
+                sprizite.addNewState(addThis);
                 stateNodeIndex++;
             }
 
@@ -266,28 +296,28 @@ namespace SpriteEditor
             zoomSlider.Value = 1;
             _images.Clear();
             _imageLocations.Clear();
-            while(associatedFilesToolStripMenuItem.DropDownItems.Count > 1)
-                associatedFilesToolStripMenuItem.DropDownItems.RemoveAt(1);
+            dependenciesToolStripMenuItem.DropDownItems.Clear();
 
             // extract images from uri params and load them
             TreeNode[] imagesToLoad = treeView.Nodes.Find("uri", true);
             foreach (TreeNode u in imagesToLoad)
             {
                 string imageLoc = u.FirstNode.Text;
-                string fullImagePath = String.Concat(sprizite.FileName.Substring(0, sprizite.FileName.LastIndexOf("\\", StringComparison.Ordinal)), "\\", imageLoc);
+                string fullImagePath = String.Concat(sprizite.fileName.Substring(0, sprizite.fileName.LastIndexOf("\\", StringComparison.Ordinal)), "\\", imageLoc);
                 if (_imageLocations.Contains(fullImagePath))
                     continue;
 
                 // add *.spi files to associated files list
-                if(fullImagePath.Contains("spi"))
+                if (fullImagePath.EndsWith("spi") || fullImagePath.EndsWith("spr"))
                 {
                     ToolStripMenuItem dynamicMenuItem = new ToolStripMenuItem(getFileNameFromPath(fullImagePath));
                     dynamicMenuItem.Click += dynamicMenuItem_Click;
                     dynamicMenuItem.Tag = fullImagePath;
-                    associatedFilesToolStripMenuItem.DropDownItems.Add(dynamicMenuItem);
+                    dependenciesToolStripMenuItem.DropDownItems.Add(dynamicMenuItem);
                     continue;
                 }
-                _images.Add(new Bitmap(fullImagePath));
+                if (File.Exists(fullImagePath))
+                    _images.Add(new Bitmap(fullImagePath));
                 _imageLocations.Add(fullImagePath);
             }
 
@@ -305,16 +335,16 @@ namespace SpriteEditor
             ToolStripMenuItem originalFile = new ToolStripMenuItem(getFileNameFromPath(fileLocation));
             originalFile.Click += dynamicMenuItem_Click;
             originalFile.Tag = fileLocation;
-            associatedFilesToolStripMenuItem.DropDownItems.Add(originalFile);
+            dependenciesToolStripMenuItem.DropDownItems.Add(originalFile);
 
             // all done populating controls - finalize
-            statusLabel.Text = sprizite.SafeFileName + " was imported successfully.";
+            statusLabel.Text = sprizite.safeFileName + " was imported successfully.";
             treeView.Nodes[0].Expand();
-            addMRU(sprizite.FileName);
+            addMRU(sprizite.fileName);
             populateRecentFiles();
         }
 
-        private static string getFileNameFromPath(string filePath)
+        public static string getFileNameFromPath(string filePath)
         {
             return filePath.Substring(filePath.LastIndexOf("\\", StringComparison.Ordinal) + 1);
         }
@@ -443,7 +473,7 @@ namespace SpriteEditor
                         foreach (string s in states)
                             treeView.Nodes[0].Nodes.Add(getNewNode(s, "State"));
                     }
-
+                    treeView.TreeViewNodeSorter = new NodeSorter();
                     treeView.Nodes[0].Expand();
                 }
             }
@@ -553,7 +583,7 @@ namespace SpriteEditor
         // help > visit avian website
         private void checkForUpdatesToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            Process.Start("http://avian.netne.net/");
+            Process.Start("http://avian.netne.net/index.php?p=programming&pid=7");
         }
 
         // help > submit sprite
@@ -652,8 +682,7 @@ namespace SpriteEditor
             }
             SaveFileDialog saveFileDialog1 = new SaveFileDialog
                                                  {
-                                                     Filter =
-                                                         "Sprite Files(*.spr;*.spi)|*.spr;*.spi|All files (*.*)|*.*",
+                                                     Filter = "Sprite Files(*.spr;*.spi)|*.spr;*.spi|All files (*.*)|*.*",
                                                      FilterIndex = 1,
                                                      RestoreDirectory = true,
                                                      FileName = treeView.Nodes[0].Text
@@ -821,7 +850,7 @@ namespace SpriteEditor
         }
 
         // helper for adding recently used files
-        private void addMRU(string fileLoc)
+        private static void addMRU(string fileLoc)
         {
             List<string> g = new List<string>(Properties.Settings.Default.MRU.Split('?'));
             
@@ -854,7 +883,7 @@ namespace SpriteEditor
         // tools > sprite preview selected
         private void spritePreviewToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            using (var form = new frmPreview(_images, _imageLocations))
+            using (var form = new frmPreview(_images, _imageLocations, ref treeView))
             {
                 form.ShowDialog();
             }
@@ -943,6 +972,11 @@ namespace SpriteEditor
         // view > open image selected
         private void openImageToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            if (treeView.Nodes.Count == 0)
+            {
+                MessageBox.Show("Cannot load picture. Go to File > New then try again.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
             try
             {
                 OpenFileDialog openFile = new OpenFileDialog
@@ -973,10 +1007,10 @@ namespace SpriteEditor
                 }
                 openFile.Dispose();
             }
-            catch (FileNotFoundException ex)
+            catch (Exception ex)
             {
                 statusLabel.Text = "Error: Picture could not be loaded.";
-                MessageBox.Show("Error: File not found.\n\n" + ex.Message + "\n" + ex.StackTrace, "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Error: File not found.\n\n" + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
 
@@ -986,10 +1020,11 @@ namespace SpriteEditor
             loadedImagesToolStripMenuItem.DropDownItems.Clear();
             foreach (string i in _imageLocations)
             {
-                ToolStripMenuItem addThis = new ToolStripMenuItem(getFileNameFromPath(i), null, imageDropDownMenu_Click)
-                                                {Tag = i};
+                ToolStripMenuItem addThis = new ToolStripMenuItem(getFileNameFromPath(i), null, imageDropDownMenu_Click) { Tag = i };
                 loadedImagesToolStripMenuItem.DropDownItems.Add(addThis);
             }
+            loadedImagesToolStripMenuItem.Enabled = loadedImagesToolStripMenuItem.DropDownItems.Count != 0;
+            dependenciesToolStripMenuItem.Enabled = dependenciesToolStripMenuItem.DropDownItems.Count != 0;
         }
 
         // 
@@ -1031,6 +1066,7 @@ namespace SpriteEditor
             ToolStripMenuItem paramToAdd = sender as ToolStripMenuItem;
             if (treeView.Nodes.Count != 0 && paramToAdd != null)
                 treeView.Nodes[0].Nodes.Add(getNewNode(paramToAdd.Text, "State"));
+            treeView.TreeViewNodeSorter = new NodeSorter();
         }
 
         private void deleteToolStripMenuItem_Click(object sender, EventArgs e)
@@ -1062,6 +1098,47 @@ namespace SpriteEditor
                     groupNode.LastNode.Nodes.Add(getNewNode("description", "Parameter"));
                     groupNode.LastNode.Nodes.Add(getNewNode("url", "Parameter"));
                 }
+                else if (groupNode.Text.Equals("spawn"))
+                {
+                    groupNode.LastNode.Nodes.Add(getNewNode("uri", "Parameter"));
+                    groupNode.LastNode.Nodes.Add(getNewNode("spawnX", "Parameter"));
+                    groupNode.LastNode.Nodes.Add(getNewNode("spawnY", "Parameter"));
+                    groupNode.LastNode.Nodes.Add(getNewNode("spawnExplode", "Parameter"));
+                }
+            }
+        }
+
+        private void fileMenuItem_DropDownOpening(object sender, EventArgs e)
+        {
+            recentSpritesToolStripMenuItem.Enabled = recentSpritesToolStripMenuItem.DropDownItems.Count != 0;
+        }
+
+        // custom TreeNode sorter implementation
+        public class NodeSorter : IComparer
+        {
+            public int Compare(object thisObj, object otherObj)
+            {
+                TreeNode thisNode = thisObj as TreeNode;
+                TreeNode otherNode = otherObj as TreeNode;
+
+                if (thisNode.Tag.Equals("SPRITE_META_DATA") || thisNode.Tag.Equals("SPRITE_STATE_DEFAULT"))
+                    return 1;
+
+                return thisNode.Text.CompareTo(otherNode.Text);
+            }
+        }
+
+        private void toolsToolStripMenuItem_DropDownOpening(object sender, EventArgs e)
+        {
+            if (treeView.Nodes.Count == 0 || !treeView.Nodes.Find("SPRITE_META_DATA", true).Any() || !treeView.Nodes.Find("SPRITE_STATE_DEFAULT", true).Any())
+            {
+                spritePreviewToolStripMenuItem.Enabled = false;
+                testSpriteToolStripMenuItem.Enabled = false;
+            }
+            else
+            {
+                spritePreviewToolStripMenuItem.Enabled = true;
+                testSpriteToolStripMenuItem.Enabled = true;
             }
         }
     }

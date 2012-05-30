@@ -5,16 +5,16 @@ namespace SpriteEditor
 {
     class Sprite
     {
-        public string FileName { get; set; }
-        public string SafeFileName { get; set; }
-        public SpriteMetaData SPRITE_META_DATA { get; set; }
-        public SpriteStateDefault SPRITE_STATE_DEFAULT { get; set; }
-        private List<SpriteState> st = new List<SpriteState>();
-        public List<SpriteState> StateList { get { return st; } }
+        public string fileName { get; set; }
+        public string safeFileName { get; set; }
+        public spriteMetaData SPRITE_META_DATA { get; set; }
+        public spriteStateDefault SPRITE_STATE_DEFAULT { get; set; }
+        private readonly List<SpriteState> _st = new List<SpriteState>();
+        public List<SpriteState> stateList { get { return _st; } }
 
-        public void AddNewState(SpriteState spriteState) { StateList.Add(spriteState); }
+        public void addNewState(SpriteState spriteState) { stateList.Add(spriteState); }
 
-        public List<string> GetNonNullProperties(string metaOrDefault, Sprite spr)
+        public List<string> getNonNullProperties(string metaOrDefault, Sprite spr)
         {
             List<string> validProperties = new List<string>();
             if (metaOrDefault.ToLower().Equals("meta")) // S[riteMetaData
@@ -71,61 +71,61 @@ namespace SpriteEditor
         }
     }
 
-    class SpriteState : SpriteStateDefault
+    class SpriteState : spriteStateDefault
     {
         public string whichState { get; set; }
-        public SpriteState(string stateNameString) { this.whichState = stateNameString; }
-        public void SetParameter(string parameterName, string parameterValue)
+        public SpriteState(string stateNameString) { whichState = stateNameString; }
+        public void setParameter(string parameterName, string parameterValue)
         {
             switch (parameterName)
             {
                 case "uri":
-                    this.uri = parameterValue;
+                    uri = parameterValue;
                     break;
                 case "sizeMultiplier":
-                    this.sizeMultiplier = parameterValue;
+                    sizeMultiplier = parameterValue;
                     break;
                 case "frameDelay":
-                    this.frameDelay = parameterValue;
+                    frameDelay = parameterValue;
                     break;
                 case "cropX":
-                    this.cropX = parameterValue;
+                    cropX = parameterValue;
                     break;
                 case "cropY":
-                    this.cropY = parameterValue;
+                    cropY = parameterValue;
                     break;
                 case "cropW":
-                    this.cropW = parameterValue;
+                    cropW = parameterValue;
                     break;
                 case "cropH":
-                    this.cropH = parameterValue;
+                    cropH = parameterValue;
                     break;
                 case "autoClose":
-                    this.autoClose = parameterValue;
+                    autoClose = parameterValue;
                     break;
                 case "isChain":
-                    this.isChain = parameterValue;
+                    isChain = parameterValue;
                     break;
                 case "flipX":
-                    this.flipX = parameterValue;
+                    flipX = parameterValue;
                     break;
                 case "sizeDivider":
-                    this.sizeDivider = parameterValue;
+                    sizeDivider = parameterValue;
                     break;
                 case "offsX":
-                    this.offsX = parameterValue;
+                    offsX = parameterValue;
                     break;
                 case "offsY":
-                    this.offsY = parameterValue;
+                    offsY = parameterValue;
                     break;
                 case "usePrevious":
-                    this.usePrevious = parameterValue;
+                    usePrevious = parameterValue;
                     break;
                 case "transparent":
-                    this.transparent = parameterValue;
+                    transparent = parameterValue;
                     break;
                 case "walkMultiplier":
-                    this.walkMultiplier = parameterValue;
+                    walkMultiplier = parameterValue;
                     break;
                 default:
                     Debug.WriteLine("Error: Parameter not found - " + parameterName + ".");
@@ -134,16 +134,16 @@ namespace SpriteEditor
         }
     }
 
-    class SpriteMetaData
+    class spriteMetaData
     {
         public string version { get; set; }
-        public List<Credits> credits { get; set; }
+        public List<credits> credits { get; set; }
         public List<string> actions { get; set; } // walk, death, fly, jump, destroy, run
         public List<string> flags { get; set; } // isCollector, doFadeOut, disablePhysics, disableWindowCollide, disableSpriteCollide, isItem, disableJump
-        public List<Spawn> spawn { get; set; }
+        public List<spawn> spawn { get; set; }
     }
 
-    class Spawn
+    class spawn
     {
         public string uri { get; set; }
         public string spawnX { get; set; }
@@ -151,14 +151,14 @@ namespace SpriteEditor
         public string spawnExplode { get; set; }
     }
 
-    class Credits
+    class credits
     {
         public string author { get; set; }
         public string description { get; set; }
         public string url { get; set; }
     }
 
-    class SpriteStateDefault
+    class spriteStateDefault
     {
         public string uri { get; set; }
         public string sizeMultiplier { get; set; }
