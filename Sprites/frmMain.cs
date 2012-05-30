@@ -18,6 +18,7 @@ namespace SpriteEditor
         //private static Regex _stateName = new Regex(@"\d+$");
         //private static Regex _stateNumber = new Regex(@"\d$");
         private string _request = "";
+        private string _workingFile = "";
         private Image _imageOriginal;
         private List<string> _imageLocations;
         private List<Bitmap> _images;
@@ -95,6 +96,7 @@ namespace SpriteEditor
                 if (result == DialogResult.OK)
                     loadSprite(openFile.FileName);
                 treeView.TreeViewNodeSorter = new NodeSorter();
+                _workingFile = openFile.FileName;
             }
             catch (FileNotFoundException ex)
             {
@@ -116,7 +118,7 @@ namespace SpriteEditor
             // deserialize jsonString into Sprite instance and add tree root
             Sprite sprizite = JsonConvert.DeserializeObject<Sprite>(jsonString);
             sprizite.fileName = fileLocation;
-            sprizite.safeFileName = getFileNameFromPath(fileLocation);
+            sprizite.safeFileName = Path.GetFileName(fileLocation);
             treeView.Nodes.Add(getNewNode(sprizite.safeFileName, "File"));
 
             // get list of states and iterate over states
@@ -310,7 +312,7 @@ namespace SpriteEditor
                 // add *.spi files to associated files list
                 if (fullImagePath.EndsWith("spi") || fullImagePath.EndsWith("spr"))
                 {
-                    ToolStripMenuItem dynamicMenuItem = new ToolStripMenuItem(getFileNameFromPath(fullImagePath));
+                    ToolStripMenuItem dynamicMenuItem = new ToolStripMenuItem(Path.GetFileName(fullImagePath));
                     dynamicMenuItem.Click += dynamicMenuItem_Click;
                     dynamicMenuItem.Tag = fullImagePath;
                     dependenciesToolStripMenuItem.DropDownItems.Add(dynamicMenuItem);
@@ -332,7 +334,7 @@ namespace SpriteEditor
             }
 
             // add spr to associated files list
-            ToolStripMenuItem originalFile = new ToolStripMenuItem(getFileNameFromPath(fileLocation));
+            ToolStripMenuItem originalFile = new ToolStripMenuItem(Path.GetFileName(fileLocation));
             originalFile.Click += dynamicMenuItem_Click;
             originalFile.Tag = fileLocation;
             dependenciesToolStripMenuItem.DropDownItems.Add(originalFile);
@@ -342,11 +344,6 @@ namespace SpriteEditor
             treeView.Nodes[0].Expand();
             addMRU(sprizite.fileName);
             populateRecentFiles();
-        }
-
-        public static string getFileNameFromPath(string filePath)
-        {
-            return filePath.Substring(filePath.LastIndexOf("\\", StringComparison.Ordinal) + 1);
         }
 
         // used for processing META_DATA and STATE_DEFAULT
@@ -605,7 +602,7 @@ namespace SpriteEditor
         }
 
         // tools > prettify mouseleave
-        private void prettifySPRToolStripMenuItem_OnMouseLeave(object sender, EventArgs e) { statusLabel.Text = "Sprite Editor By Avian"; }
+        private void setStatusLabelDefault_OnMouseLeave(object sender, EventArgs e) { statusLabel.Text = "Sprite Editor By Avian"; }
 
         // tools > preffity clicked
         private void prettifySPRToolStripMenuItem_Click(object sender, EventArgs e)
@@ -693,6 +690,7 @@ namespace SpriteEditor
                 StreamWriter file = new StreamWriter(saveFileDialog1.FileName);
                 file.WriteLine(writeJsonFromTree(treeView));
                 file.Close();
+                _workingFile = saveFileDialog1.FileName;
             }
             Debug.WriteLine(writeJsonFromTree(treeView));
         }
@@ -873,7 +871,7 @@ namespace SpriteEditor
             {
                 if (rs.Equals(""))
                     continue;
-                ToolStripMenuItem dynamicMenuItem = new ToolStripMenuItem(getFileNameFromPath(rs));
+                ToolStripMenuItem dynamicMenuItem = new ToolStripMenuItem(Path.GetFileName(rs));
                 dynamicMenuItem.Click += dynamicMenuItem_Click;
                 dynamicMenuItem.Tag = rs;
                 recentSpritesToolStripMenuItem.DropDownItems.Add(dynamicMenuItem);
@@ -909,15 +907,21 @@ namespace SpriteEditor
         {
             if (treeView.Nodes.Count <= 0)
                 return;
-            TextWriter tw = new StreamWriter("test.spr");
+            if (_workingFile.Equals(""))
+            {
+                MessageBox.Show("Please use File > Save As to set the working file location.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+            string folder = Path.GetDirectoryName(_workingFile);
+            TextWriter tw = new StreamWriter(_workingFile);
             tw.WriteLine(writeJsonFromTree(treeView));
             tw.Close();
 
             int i = 0;
             foreach(Bitmap b in _images)
-                b.Save(getFileNameFromPath(_imageLocations[i++]));
+                b.Save(folder + "\\" + Path.GetFileName(_imageLocations[i++]));
 
-            Process.Start("test.spr");
+            Process.Start(_workingFile);
         }
 
         // event handler for context menu EDIT item
@@ -1020,7 +1024,7 @@ namespace SpriteEditor
             loadedImagesToolStripMenuItem.DropDownItems.Clear();
             foreach (string i in _imageLocations)
             {
-                ToolStripMenuItem addThis = new ToolStripMenuItem(getFileNameFromPath(i), null, imageDropDownMenu_Click) { Tag = i };
+                ToolStripMenuItem addThis = new ToolStripMenuItem(Path.GetFileName(i), null, imageDropDownMenu_Click) { Tag = i };
                 loadedImagesToolStripMenuItem.DropDownItems.Add(addThis);
             }
             loadedImagesToolStripMenuItem.Enabled = loadedImagesToolStripMenuItem.DropDownItems.Count != 0;
@@ -1140,6 +1144,98 @@ namespace SpriteEditor
                 spritePreviewToolStripMenuItem.Enabled = true;
                 testSpriteToolStripMenuItem.Enabled = true;
             }
+        }
+
+        private void spritePreviewToolStripMenuItem_MouseEnter(object sender, EventArgs e)
+        {
+            statusLabel.Text = "Show preview of each indivudal SPRITE_STATE";
+        }
+
+        private void testSpriteToolStripMenuItem_MouseEnter(object sender, EventArgs e)
+        {
+            statusLabel.Text = "Save Sprite/Images and Open it in sprites.exe";
+        }
+
+        private void checkForUpdatesToolStripMenuItem_MouseEnter(object sender, EventArgs e)
+        {
+            statusLabel.Text = "Visit Sprite Editor homepage.";
+        }
+
+        private void visitSpriteForumsToolStripMenuItem_MouseEnter(object sender, EventArgs e)
+        {
+            statusLabel.Text = "Visit Character Submissions Forum on sprites.caustik.com";
+        }
+
+        private void dependenciesToolStripMenuItem_MouseEnter(object sender, EventArgs e)
+        {
+            statusLabel.Text = "List of associated files such as *.spi death files";
+        }
+
+        private void loadedImagesToolStripMenuItem_MouseEnter(object sender, EventArgs e)
+        {
+            statusLabel.Text = "List of included image files in the *.spr file";
+        }
+
+        private void openImageToolStripMenuItem_MouseEnter(object sender, EventArgs e)
+        {
+            statusLabel.Text = "Add new image to current sprite";
+        }
+
+        private void manualEntryToolStripMenuItem1_MouseEnter(object sender, EventArgs e)
+        {
+            statusLabel.Text = "Edit currently selected TreeNode";
+        }
+
+        private void grabXValueToolStripMenuItem1_MouseEnter(object sender, EventArgs e)
+        {
+            statusLabel.Text = "Grab X Value from image to be stored in selected TreeNode";
+        }
+
+        private void grabYValueToolStripMenuItem1_MouseEnter(object sender, EventArgs e)
+        {
+            statusLabel.Text = "Grab Y Value from image to be stored in selected TreeNode";
+        }
+
+        private void grabColorToolStripMenuItem1_MouseEnter(object sender, EventArgs e)
+        {
+            statusLabel.Text = "Grab color from image to store in selected TreeNode";
+        }
+
+        private void useImageURIToolStripMenuItem_MouseEnter(object sender, EventArgs e)
+        {
+            statusLabel.Text = "Store currently displayed image URI in selected TreeNode";
+        }
+
+        private void sPRFileDocumentationToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Process.Start("http://sprites.caustik.com/topic/356-how-to-create-your-own-spr-files/");
+        }
+
+        private void sPRFileDocumentationToolStripMenuItem_MouseEnter(object sender, EventArgs e)
+        {
+            statusLabel.Text = "View *.spr file format specs in web browser";
+        }
+
+        private void saveToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (_workingFile.Equals(""))
+            {
+                MessageBox.Show("Please use File > Save As to set the working file.", "Error", MessageBoxButtons.OK,
+                                MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (treeView.Nodes.Count == 0)
+            {
+                statusLabel.Text = "Cannot save. Empty file!";
+                return;
+            }
+
+            StreamWriter file = new StreamWriter(_workingFile);
+            file.WriteLine(writeJsonFromTree(treeView));
+            file.Close();
+
+            statusLabel.Text = "File successfully saved!";
         }
     }
 }

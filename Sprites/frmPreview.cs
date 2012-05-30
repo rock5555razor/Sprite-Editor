@@ -142,5 +142,10 @@ namespace SpriteEditor
             previewBox.Width = previewBox.Image.Width * _zoomLevel;
             previewBox.Height = previewBox.Image.Height * _zoomLevel;
         }
+
+        private void frmPreview_Load(object sender, EventArgs e)
+        {
+
+        }
     }
 }
