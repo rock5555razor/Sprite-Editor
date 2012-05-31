@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -6,17 +7,16 @@ using System.Drawing.Drawing2D;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using System.Collections;
 
 namespace SpriteEditor
 {
     public partial class frmMain : Form
     {
-        //private static Regex _stateName = new Regex(@"\d+$");
-        //private static Regex _stateNumber = new Regex(@"\d$");
+        private static readonly Regex _regex = new Regex(@"\d+$");
         private string _request = "";
         private string _workingFile = "";
         private Image _imageOriginal;
@@ -38,6 +38,14 @@ namespace SpriteEditor
                                                         "SPRITE_STATE_FLY_LEFT", "SPRITE_STATE_FLY_RIGHT"
                                                     };
 
+        private readonly string[] _possibleFlags = {
+                                                       "isCollector", "isItem", "disablePhysics",
+                                                       "disableWindowCollide", "disableSpriteCollide",
+                                                       "disableJump", "doFadeOut"
+                                                   };
+
+        private readonly string[] _possibleActions = {"walk", "fly", "run", "jump", "destroy", "death"};
+
         public frmMain() { InitializeComponent(); }
 
         // application start
@@ -53,17 +61,36 @@ namespace SpriteEditor
             foreach (string s in _possibleParams)
             {
                 ToolStripMenuItem addThis = new ToolStripMenuItem(s, null, addParameter_Click);
-                ToolStripMenuItem thisToo = new ToolStripMenuItem(s, null, addParameter_Click);
-                addParameterToolStripMenuItem.DropDownItems.Add(addThis);
-                addParameterMenuItem.DropDownItems.Add(thisToo);
+                addParameterMenuItem.DropDownItems.Add(addThis);
             }
 
             foreach (string s in _possibleStates)
             {
                 ToolStripMenuItem addThis = new ToolStripMenuItem(s, null, addState_Click);
-                ToolStripMenuItem thisToo = new ToolStripMenuItem(s, null, addState_Click);
                 addStateMenuItem.DropDownItems.Add(addThis);
-                addStateToolStripMenuItem.DropDownItems.Add(thisToo);
+            }
+
+            foreach (string s in _possibleFlags)
+            {
+                ToolStripMenuItem addThis = new ToolStripMenuItem(s, null, addFlagOrAction_Click);
+                addFlagMenuItem.DropDownItems.Add(addThis);
+            }
+
+            foreach (string s in _possibleFlags)
+            {
+                ToolStripMenuItem addThis = new ToolStripMenuItem(s, null, addFlagOrAction_Click);
+                addActionMenuItem.DropDownItems.Add(addThis);
+            }
+        }
+
+        // event handler for add flags
+        private void addFlagOrAction_Click(object sender, EventArgs e)
+        {
+            ToolStripMenuItem paramToAdd = sender as ToolStripMenuItem;
+            if (treeView.SelectedNode != null && treeView.SelectedNode.Tag.Equals("Parameter") && paramToAdd != null)
+            {
+                treeView.SelectedNode.Nodes.Add(getNewNode(paramToAdd.Text, "Value"));
+                treeView.SelectedNode.Expand();
             }
         }
 
@@ -95,8 +122,7 @@ namespace SpriteEditor
                 DialogResult result = openFile.ShowDialog();
                 if (result == DialogResult.OK)
                     loadSprite(openFile.FileName);
-                treeView.TreeViewNodeSorter = new NodeSorter();
-                _workingFile = openFile.FileName;
+                sortTree();
             }
             catch (FileNotFoundException ex)
             {
@@ -344,6 +370,7 @@ namespace SpriteEditor
             treeView.Nodes[0].Expand();
             addMRU(sprizite.fileName);
             populateRecentFiles();
+            _workingFile = sprizite.fileName;
         }
 
         // used for processing META_DATA and STATE_DEFAULT
@@ -470,7 +497,7 @@ namespace SpriteEditor
                         foreach (string s in states)
                             treeView.Nodes[0].Nodes.Add(getNewNode(s, "State"));
                     }
-                    treeView.TreeViewNodeSorter = new NodeSorter();
+                    sortTree();
                     treeView.Nodes[0].Expand();
                 }
             }
@@ -550,6 +577,22 @@ namespace SpriteEditor
             if (e.Button != MouseButtons.Right) return;
             Point p = new Point(e.X, e.Y);
             TreeNode node = treeView.GetNodeAt(p);
+            //Debug.WriteLine(node.Text + " is " + node.Tag);
+            
+            if (Convert.ToString(node.Tag).Equals("Parameter") && node.Text.Equals("actions"))
+            {
+                treeActionsContextMenu.Show(treeView, p);
+                treeView.SelectedNode = node;
+                return;
+            }
+
+            if (Convert.ToString(node.Tag).Equals("Parameter") && node.Text.Equals("flags"))
+            {
+                treeFlagsContextMenu.Show(treeView, p);
+                treeView.SelectedNode = node;
+                return;
+            }
+
             switch (Convert.ToString(node.Tag))
             {
                 case "File":
@@ -559,15 +602,16 @@ namespace SpriteEditor
                     treeStateContextMenu.Show(treeView, p);
                     break;
                 case "Parameter":
-                case "Value":
                     treeParamContextMenu.Show(treeView, p);
+                    break;
+                case "Value":
+                    treeValueContextMenu.Show(treeView, p);
                     break;
                 case "Index":
                     treeIndexContextMenu.Show(treeView, p);
                     break;
             }
             treeView.SelectedNode = node;
-            Debug.WriteLine(node.Text + " is " + node.Tag);
         }
 
         void dynamicMenuItem_Click(object sender, EventArgs e)
@@ -691,6 +735,8 @@ namespace SpriteEditor
                 file.WriteLine(writeJsonFromTree(treeView));
                 file.Close();
                 _workingFile = saveFileDialog1.FileName;
+                addMRU(saveFileDialog1.FileName);
+                populateRecentFiles();
             }
             Debug.WriteLine(writeJsonFromTree(treeView));
         }
@@ -918,8 +964,12 @@ namespace SpriteEditor
             tw.Close();
 
             int i = 0;
-            foreach(Bitmap b in _images)
-                b.Save(folder + "\\" + Path.GetFileName(_imageLocations[i++]));
+            foreach (Bitmap b in _images)
+            {
+                string loc = folder + "\\" + Path.GetFileName(_imageLocations[i++]);
+                if(!File.Exists(loc))
+                    b.Save(loc);
+            }
 
             Process.Start(_workingFile);
         }
@@ -1052,8 +1102,7 @@ namespace SpriteEditor
         // event handler for edit > delete state menu item
         private void deleteStateToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            if (treeView.SelectedNode != null && treeView.SelectedNode.Tag.Equals("State"))
-                treeView.SelectedNode.Remove();
+            treeView.SelectedNode.Remove();
         }
 
         // event handler for edit > delete parameter menu item
@@ -1070,7 +1119,7 @@ namespace SpriteEditor
             ToolStripMenuItem paramToAdd = sender as ToolStripMenuItem;
             if (treeView.Nodes.Count != 0 && paramToAdd != null)
                 treeView.Nodes[0].Nodes.Add(getNewNode(paramToAdd.Text, "State"));
-            treeView.TreeViewNodeSorter = new NodeSorter();
+            sortTree();
         }
 
         private void deleteToolStripMenuItem_Click(object sender, EventArgs e)
@@ -1125,8 +1174,10 @@ namespace SpriteEditor
                 TreeNode thisNode = thisObj as TreeNode;
                 TreeNode otherNode = otherObj as TreeNode;
 
-                if (thisNode.Tag.Equals("SPRITE_META_DATA") || thisNode.Tag.Equals("SPRITE_STATE_DEFAULT"))
-                    return 1;
+                //if (thisNode.Text.Equals("SPRITE_META_DATA") || thisNode.Text.Equals("SPRITE_STATE_DEFAULT"))
+                //    return 1;
+                if (thisNode.Tag.Equals("Parameter") || thisNode.Tag.Equals("Value"))
+                    return 0;
 
                 return thisNode.Text.CompareTo(otherNode.Text);
             }
@@ -1181,31 +1232,6 @@ namespace SpriteEditor
             statusLabel.Text = "Add new image to current sprite";
         }
 
-        private void manualEntryToolStripMenuItem1_MouseEnter(object sender, EventArgs e)
-        {
-            statusLabel.Text = "Edit currently selected TreeNode";
-        }
-
-        private void grabXValueToolStripMenuItem1_MouseEnter(object sender, EventArgs e)
-        {
-            statusLabel.Text = "Grab X Value from image to be stored in selected TreeNode";
-        }
-
-        private void grabYValueToolStripMenuItem1_MouseEnter(object sender, EventArgs e)
-        {
-            statusLabel.Text = "Grab Y Value from image to be stored in selected TreeNode";
-        }
-
-        private void grabColorToolStripMenuItem1_MouseEnter(object sender, EventArgs e)
-        {
-            statusLabel.Text = "Grab color from image to store in selected TreeNode";
-        }
-
-        private void useImageURIToolStripMenuItem_MouseEnter(object sender, EventArgs e)
-        {
-            statusLabel.Text = "Store currently displayed image URI in selected TreeNode";
-        }
-
         private void sPRFileDocumentationToolStripMenuItem_Click(object sender, EventArgs e)
         {
             Process.Start("http://sprites.caustik.com/topic/356-how-to-create-your-own-spr-files/");
@@ -1220,8 +1246,7 @@ namespace SpriteEditor
         {
             if (_workingFile.Equals(""))
             {
-                MessageBox.Show("Please use File > Save As to set the working file.", "Error", MessageBoxButtons.OK,
-                                MessageBoxIcon.Warning);
+                MessageBox.Show("Please use File > Save As to set the working file.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
@@ -1237,5 +1262,86 @@ namespace SpriteEditor
 
             statusLabel.Text = "File successfully saved!";
         }
+
+        private void incrementStateMenuItem_Click(object sender, EventArgs e)
+        {
+            string stateNo = _regex.Match(treeView.SelectedNode.Text).Value;
+            string newState = stateNo.Equals("") ? string.Concat(treeView.SelectedNode.Text, "_0") : string.Concat(_regex.Replace(treeView.SelectedNode.Text, ""), int.Parse(stateNo) + 1);
+            treeView.Nodes[0].Nodes.Add(getNewNode(newState, "State"));
+            sortTree();
+        }
+
+        private void sortTree() { treeView.TreeViewNodeSorter = new NodeSorter(); }
+
+        private void manualEntryToolStripMenuItem2_Click(object sender, EventArgs e)
+        {
+            ToolStripMenuItem s = sender as ToolStripMenuItem;
+            if (s == null) return;
+            treeView.SelectedNode.Nodes.Add(getNewNode("SPRITE_STATE_", s.Tag.ToString()));
+            treeView.SelectedNode.Expand();
+            treeView.SelectedNode.LastNode.BeginEdit();
+        }
+
+        private void moveUpMenuItem_Click(object sender, EventArgs e)
+        {
+            treeView.SelectedNode.MoveUp();
+        }
+
+        private void moveDownMenuItem_Click(object sender, EventArgs e)
+        {
+            treeView.SelectedNode.MoveDown();
+        }
     }
+
+    public static class Extensions
+    {
+        public static void MoveUp(this TreeNode node)
+        {
+            TreeNode parent = node.Parent;
+            TreeView view = node.TreeView;
+            if (parent != null)
+            {
+                int index = parent.Nodes.IndexOf(node);
+                if (index > 0)
+                {
+                    parent.Nodes.RemoveAt(index);
+                    parent.Nodes.Insert(index - 1, node);
+                }
+            }
+            else if (node.TreeView.Nodes.Contains(node))
+            {
+                int index = view.Nodes.IndexOf(node);
+                if (index > 0)
+                {
+                    view.Nodes.RemoveAt(index);
+                    view.Nodes.Insert(index - 1, node);
+                }
+            }
+        }
+
+        public static void MoveDown(this TreeNode node)
+        {
+            TreeNode parent = node.Parent;
+            TreeView view = node.TreeView;
+            if (parent != null)
+            {
+                int index = parent.Nodes.IndexOf(node);
+                if (index < parent.Nodes.Count - 1)
+                {
+                    parent.Nodes.RemoveAt(index);
+                    parent.Nodes.Insert(index + 1, node);
+                }
+            }
+            else if (view != null && view.Nodes.Contains(node))
+            {
+                int index = view.Nodes.IndexOf(node);
+                if (index < view.Nodes.Count - 1)
+                {
+                    view.Nodes.RemoveAt(index);
+                    view.Nodes.Insert(index + 1, node);
+                }
+            }
+        }
+    }
+
 }
