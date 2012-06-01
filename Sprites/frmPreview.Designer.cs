@@ -114,7 +114,7 @@
             // previewBox
             // 
             this.previewBox.Image = global::SpriteEditor.Properties.Resources.error;
-            this.previewBox.Location = new System.Drawing.Point(0, 25);
+            this.previewBox.Location = new System.Drawing.Point(12, 37);
             this.previewBox.Name = "previewBox";
             this.previewBox.Size = new System.Drawing.Size(64, 32);
             this.previewBox.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
@@ -131,7 +131,6 @@
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "frmPreview";
             this.Text = "Sprite Preview";
-            this.Load += new System.EventHandler(this.frmPreview_Load);
             this.toolStrip1.ResumeLayout(false);
             this.toolStrip1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.previewBox)).EndInit();

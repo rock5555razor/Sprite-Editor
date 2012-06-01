@@ -34,5 +34,65 @@ namespace SpriteEditor.Properties {
                 this["MRU"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int FormWidth {
+            get {
+                return ((int)(this["FormWidth"]));
+            }
+            set {
+                this["FormWidth"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int FormHeight {
+            get {
+                return ((int)(this["FormHeight"]));
+            }
+            set {
+                this["FormHeight"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int SplitterDistance {
+            get {
+                return ((int)(this["SplitterDistance"]));
+            }
+            set {
+                this["SplitterDistance"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("-5")]
+        public int FormTop {
+            get {
+                return ((int)(this["FormTop"]));
+            }
+            set {
+                this["FormTop"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("-5")]
+        public int FormLeft {
+            get {
+                return ((int)(this["FormLeft"]));
+            }
+            set {
+                this["FormLeft"] = value;
+            }
+        }
     }
 }

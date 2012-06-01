@@ -28,3 +28,4 @@ C:\Users\avian\Documents\Visual Studio 2010\Projects\SpriteEditor\Sprites\obj\x8
 C:\Users\avian\Documents\Visual Studio 2010\Projects\SpriteEditor\Sprites\obj\x86\Debug\SpriteEditor.frmPreview.resources
 C:\Users\avian\Documents\Visual Studio 2010\Projects\SpriteEditor\Sprites\obj\x86\Debug\SpriteEditor.frmWizard.resources
 C:\Users\avian\Documents\Visual Studio 2010\Projects\SpriteEditor\Sprites\obj\x86\Debug\SpriteEditor.Properties.Resources.resources
+C:\Users\avian\Documents\Visual Studio 2010\Projects\SpriteEditor\Sprites\obj\x86\Debug\SpriteEditor.frmAbout.resources

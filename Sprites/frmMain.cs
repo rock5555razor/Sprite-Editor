@@ -21,7 +21,8 @@ namespace SpriteEditor
         private string _workingFile = "";
         private Image _imageOriginal;
         private List<string> _imageLocations;
-        private List<Bitmap> _images;
+        private List<Image> _images;
+        private List<ToolStripMenuItem> _dependencies; 
         private readonly string[] _possibleParams = {
                                                         "uri", "flipX", "sizeMultiplier", "sizeDivider", "frameDelay",
                                                         "cropX", "cropY", "cropW", "cropH",
@@ -51,12 +52,20 @@ namespace SpriteEditor
         // application start
         private void frmMain_Load(object sender, EventArgs e)
         {
-            _images = new List<Bitmap>();
+            _images = new List<Image>();
             _imageLocations = new List<string>();
+            _dependencies = new List<ToolStripMenuItem>();
+
             imageDisplay.Width = imageDisplay.Image.Width;
             imageDisplay.Height = imageDisplay.Image.Height;
             _imageOriginal = imageDisplay.Image;
             populateRecentFiles();
+
+            Width = Properties.Settings.Default.FormWidth > 0 ? Properties.Settings.Default.FormWidth : 675;
+            Height = Properties.Settings.Default.FormHeight > 0 ? Properties.Settings.Default.FormHeight : 375;
+            splitContainer1.SplitterDistance = Properties.Settings.Default.SplitterDistance > 0 ? Properties.Settings.Default.SplitterDistance : 460;
+            Top = Properties.Settings.Default.SplitterDistance > -5 ? Properties.Settings.Default.FormTop : 20;
+            Left = Properties.Settings.Default.SplitterDistance > -5 ? Properties.Settings.Default.FormLeft : 20;
 
             foreach (string s in _possibleParams)
             {
@@ -76,7 +85,7 @@ namespace SpriteEditor
                 addFlagMenuItem.DropDownItems.Add(addThis);
             }
 
-            foreach (string s in _possibleFlags)
+            foreach (string s in _possibleActions)
             {
                 ToolStripMenuItem addThis = new ToolStripMenuItem(s, null, addFlagOrAction_Click);
                 addActionMenuItem.DropDownItems.Add(addThis);
@@ -139,6 +148,7 @@ namespace SpriteEditor
             //read file into string and close
             StreamReader myFile = new StreamReader(fileLocation);
             string jsonString = myFile.ReadToEnd();
+            jsonString = prettifyJSON(jsonString);
             myFile.Close();
 
             // deserialize jsonString into Sprite instance and add tree root
@@ -324,24 +334,26 @@ namespace SpriteEditor
             zoomSlider.Value = 1;
             _images.Clear();
             _imageLocations.Clear();
-            dependenciesToolStripMenuItem.DropDownItems.Clear();
+            _dependencies.Clear();
 
-            // extract images from uri params and load them
+            // extract dependencies from uri params and load them
             TreeNode[] imagesToLoad = treeView.Nodes.Find("uri", true);
             foreach (TreeNode u in imagesToLoad)
             {
+                if (u.FirstNode == null) continue;
                 string imageLoc = u.FirstNode.Text;
                 string fullImagePath = String.Concat(sprizite.fileName.Substring(0, sprizite.fileName.LastIndexOf("\\", StringComparison.Ordinal)), "\\", imageLoc);
                 if (_imageLocations.Contains(fullImagePath))
                     continue;
 
                 // add *.spi files to associated files list
-                if (fullImagePath.EndsWith("spi") || fullImagePath.EndsWith("spr"))
+                if (fullImagePath.EndsWith("spi") || fullImagePath.EndsWith("spr") && !Path.GetFileName(fullImagePath).Equals(sprizite.safeFileName))
                 {
                     ToolStripMenuItem dynamicMenuItem = new ToolStripMenuItem(Path.GetFileName(fullImagePath));
-                    dynamicMenuItem.Click += dynamicMenuItem_Click;
+                    dynamicMenuItem.Image = Properties.Resources.favicon;
                     dynamicMenuItem.Tag = fullImagePath;
-                    dependenciesToolStripMenuItem.DropDownItems.Add(dynamicMenuItem);
+                    dynamicMenuItem.Click += dynamicMenuItem_Click;
+                    _dependencies.Add(dynamicMenuItem);
                     continue;
                 }
                 if (File.Exists(fullImagePath))
@@ -358,12 +370,6 @@ namespace SpriteEditor
                 imageDisplay.Height = imageDisplay.Image.Height;
                 _imageOriginal = imageDisplay.Image;
             }
-
-            // add spr to associated files list
-            ToolStripMenuItem originalFile = new ToolStripMenuItem(Path.GetFileName(fileLocation));
-            originalFile.Click += dynamicMenuItem_Click;
-            originalFile.Tag = fileLocation;
-            dependenciesToolStripMenuItem.DropDownItems.Add(originalFile);
 
             // all done populating controls - finalize
             statusLabel.Text = sprizite.safeFileName + " was imported successfully.";
@@ -577,7 +583,7 @@ namespace SpriteEditor
             if (e.Button != MouseButtons.Right) return;
             Point p = new Point(e.X, e.Y);
             TreeNode node = treeView.GetNodeAt(p);
-            //Debug.WriteLine(node.Text + " is " + node.Tag);
+            Debug.WriteLine(node.Text + " is " + node.Tag);
             
             if (Convert.ToString(node.Tag).Equals("Parameter") && node.Text.Equals("actions"))
             {
@@ -617,8 +623,11 @@ namespace SpriteEditor
         void dynamicMenuItem_Click(object sender, EventArgs e)
         {
             ToolStripMenuItem sent = sender as ToolStripMenuItem;
-            if (sent != null)
+            if (sent != null && File.Exists(sent.Tag.ToString()))
                 loadSprite(sent.Tag.ToString());
+            else
+                MessageBox.Show("Error: File not found.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+
         }
 
         // help > visit avian website
@@ -839,13 +848,13 @@ namespace SpriteEditor
         }
 
         // helper for zoom functionality
-        public Image pictureBoxZoom(Image img, Size size)
-        {
-            Bitmap bm = new Bitmap(img, Convert.ToInt32(img.Width * size.Width), Convert.ToInt32(img.Height * size.Height));
-            Graphics grap = Graphics.FromImage(bm);
-            grap.InterpolationMode = InterpolationMode.HighQualityBicubic;
-            return bm;
-        }
+        //public Image pictureBoxZoom(Image img, Size size)
+        //{
+        //    Bitmap bm = new Bitmap(img, Convert.ToInt32(img.Width * size.Width), Convert.ToInt32(img.Height * size.Height));
+        //    Graphics grap = Graphics.FromImage(bm);
+        //    grap.InterpolationMode = InterpolationMode.HighQualityBicubic;
+        //    return bm;
+        //}
 
         // view > zoom in selected
         private void zoomInToolStripMenuItem_Click(object sender, EventArgs e)
@@ -853,10 +862,8 @@ namespace SpriteEditor
             if (zoomSlider.Value == zoomSlider.Maximum)
                 return;
             zoomSlider.Value++;
-            imageDisplay.Image = null;
-            imageDisplay.Image = pictureBoxZoom(_imageOriginal, new Size(zoomSlider.Value, zoomSlider.Value));
-            imageDisplay.Width = imageDisplay.Image.Width;
-            imageDisplay.Height = imageDisplay.Image.Height;
+            imageDisplay.Width = imageDisplay.Image.Width * zoomSlider.Value;
+            imageDisplay.Height = imageDisplay.Image.Height * zoomSlider.Value;
         }
 
         // veiw > zoom out selected
@@ -865,10 +872,8 @@ namespace SpriteEditor
             if (zoomSlider.Value == zoomSlider.Minimum)
                 return;
             zoomSlider.Value--;
-            imageDisplay.Image = null;
-            imageDisplay.Image = pictureBoxZoom(_imageOriginal, new Size(zoomSlider.Value, zoomSlider.Value));
-            imageDisplay.Width = imageDisplay.Image.Width;
-            imageDisplay.Height = imageDisplay.Image.Height;
+            imageDisplay.Width = imageDisplay.Image.Width * zoomSlider.Value;
+            imageDisplay.Height = imageDisplay.Image.Height * zoomSlider.Value;
         }
 
         // view > actual size selected
@@ -915,7 +920,7 @@ namespace SpriteEditor
 
             foreach (string rs in split)
             {
-                if (rs.Equals(""))
+                if (rs.Equals("") || !File.Exists(rs))
                     continue;
                 ToolStripMenuItem dynamicMenuItem = new ToolStripMenuItem(Path.GetFileName(rs));
                 dynamicMenuItem.Click += dynamicMenuItem_Click;
@@ -1071,13 +1076,15 @@ namespace SpriteEditor
         // event handler to populate Recent Images
         private void viewToolStripMenuItem_DropDownOpening(object sender, EventArgs e)
         {
-            loadedImagesToolStripMenuItem.DropDownItems.Clear();
+            dependenciesToolStripMenuItem.DropDownItems.Clear();
             foreach (string i in _imageLocations)
             {
-                ToolStripMenuItem addThis = new ToolStripMenuItem(Path.GetFileName(i), null, imageDropDownMenu_Click) { Tag = i };
-                loadedImagesToolStripMenuItem.DropDownItems.Add(addThis);
+                ToolStripMenuItem addThis = new ToolStripMenuItem(Path.GetFileName(i), null, imageDropDownMenu_Click) { Tag = i, Image = Properties.Resources.generic_picture };
+                dependenciesToolStripMenuItem.DropDownItems.Add(addThis);
             }
-            loadedImagesToolStripMenuItem.Enabled = loadedImagesToolStripMenuItem.DropDownItems.Count != 0;
+            foreach (ToolStripMenuItem d in _dependencies)
+                dependenciesToolStripMenuItem.DropDownItems.Add(d);
+
             dependenciesToolStripMenuItem.Enabled = dependenciesToolStripMenuItem.DropDownItems.Count != 0;
         }
 
@@ -1105,14 +1112,6 @@ namespace SpriteEditor
             treeView.SelectedNode.Remove();
         }
 
-        // event handler for edit > delete parameter menu item
-        private void deleteParameterToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            if (treeView.SelectedNode == null) return;
-            if (treeView.SelectedNode.Tag.Equals("Parameter") || treeView.SelectedNode.Tag.Equals("Value"))
-                treeView.SelectedNode.Remove();
-        }
-
         // event handler for add state
         private void addState_Click(object sender, EventArgs e)
         {
@@ -1120,12 +1119,6 @@ namespace SpriteEditor
             if (treeView.Nodes.Count != 0 && paramToAdd != null)
                 treeView.Nodes[0].Nodes.Add(getNewNode(paramToAdd.Text, "State"));
             sortTree();
-        }
-
-        private void deleteToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            if (treeView.SelectedNode != null && treeView.SelectedNode.Tag.Equals("Index"))
-                treeView.SelectedNode.Remove();
         }
 
         private void addNewGroupToolStripMenuItem_Click(object sender, EventArgs e)
@@ -1219,7 +1212,7 @@ namespace SpriteEditor
 
         private void dependenciesToolStripMenuItem_MouseEnter(object sender, EventArgs e)
         {
-            statusLabel.Text = "List of associated files such as *.spi death files";
+            statusLabel.Text = "Open associated images, *.spi, and *.spr files";
         }
 
         private void loadedImagesToolStripMenuItem_MouseEnter(object sender, EventArgs e)
@@ -1290,6 +1283,61 @@ namespace SpriteEditor
         private void moveDownMenuItem_Click(object sender, EventArgs e)
         {
             treeView.SelectedNode.MoveDown();
+        }
+
+        private void frmMain_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            Properties.Settings.Default.FormHeight = Height;
+            Properties.Settings.Default.FormWidth = Width;
+            Properties.Settings.Default.FormTop = Top;
+            Properties.Settings.Default.FormLeft = Left;
+            Properties.Settings.Default.SplitterDistance = splitContainer1.SplitterDistance;
+            Properties.Settings.Default.Save();
+            Debug.WriteLine("Top: " + Top + " Left: " + Left);
+        }
+
+        private void spawnToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (treeView.SelectedNode != null && treeView.SelectedNode.Tag.Equals("State") && !treeView.SelectedNode.Nodes.Find("spawn", true).Any())
+            {
+                treeView.SelectedNode.Expand();
+                TreeNode spawnNode = getNewNode("spawn", "Index");
+                TreeNode groupNode = getNewNode("[1]", "Index");
+                treeView.SelectedNode.Nodes.Add(spawnNode);
+                spawnNode.Nodes.Add(groupNode);
+                groupNode.Nodes.Add(getNewNode("uri", "Parameter"));
+                groupNode.Nodes.Add(getNewNode("spawnX", "Parameter"));
+                groupNode.Nodes.Add(getNewNode("spawnY", "Parameter"));
+                groupNode.Nodes.Add(getNewNode("spawnExplode", "Parameter"));
+                spawnNode.Expand();
+                groupNode.Expand();
+            }
+        }
+
+        private void fixturesToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (treeView.SelectedNode != null && treeView.SelectedNode.Tag.Equals("State") && !treeView.SelectedNode.Nodes.Find("fixtures", true).Any())
+            {
+                treeView.SelectedNode.Expand();
+                TreeNode spawnNode = getNewNode("fixtures", "Index");
+                TreeNode groupNode = getNewNode("[1]", "Index");
+                treeView.SelectedNode.Nodes.Add(spawnNode);
+                spawnNode.Nodes.Add(groupNode);
+                groupNode.Nodes.Add(getNewNode("x", "Parameter"));
+                groupNode.Nodes.Add(getNewNode("y", "Parameter"));
+                groupNode.Nodes.Add(getNewNode("w", "Parameter"));
+                groupNode.Nodes.Add(getNewNode("h", "Parameter"));
+                spawnNode.Expand();
+                groupNode.Expand();
+            }
+        }
+
+        private void aboutToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            using (var form = new frmAbout())
+            {
+                form.ShowDialog();
+            }
         }
     }
 

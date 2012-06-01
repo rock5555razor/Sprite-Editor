@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
@@ -9,10 +10,10 @@ namespace SpriteEditor
     public partial class frmPreview : Form
     {
         private int _zoomLevel = 1;
-        private readonly List<Bitmap> _imageBitmaps;
+        private readonly List<Image> _imageBitmaps;
         private readonly List<String> _imageLocations;
         private readonly List<Image> _previewable;
-        private static readonly Regex _stateNumber = new Regex(@"\d$");
+        private readonly Dictionary<string,string> _offs;
         private static readonly Regex _stateName = new Regex(@"\d+$");
 
         public frmPreview()
@@ -20,13 +21,14 @@ namespace SpriteEditor
             InitializeComponent();
         }
 
-        public frmPreview(List<Bitmap> images, List<String> imageLocations, ref TreeView tree)
+        public frmPreview(List<Image> images, List<String> imageLocations, ref TreeView tree)
         {
             InitializeComponent();
             Dictionary<string, string> defaultInfo = new Dictionary<string, string>();
-            _imageBitmaps = images;
-            _imageLocations = imageLocations;
+            _imageBitmaps = new List<Image>(images);
+            _imageLocations = new List<string>(imageLocations);
             _previewable = new List<Image>();
+            _offs = new Dictionary<string, string>();
 
             // list of possible state parameters
             string[] keys = {
@@ -51,12 +53,12 @@ namespace SpriteEditor
             }
 
             string trimmedPrevStateName = "";
-            Image imageToProcess = _imageBitmaps[0];
-            //int x, y, w, h;
+            //int[,] offs = new int[tree.Nodes[0].Nodes.Count, 2];
             
             // loop through each state Node in the tree and process
             foreach (TreeNode n in tree.Nodes[0].Nodes)
             {
+                Image imageToProcess = null;
                 // ignore META_DATA and populate combobox
                 if (n.Text.EndsWith("META_DATA")) continue;
                 if (cmbStateToPreview.ComboBox != null) cmbStateToPreview.ComboBox.Items.Add(n.Text);
@@ -81,11 +83,27 @@ namespace SpriteEditor
                         imageToProcess = _imageBitmaps[_imageLocations.IndexOf(s)];
                 }
 
+                int left = previewBox.Left + Convert.ToInt32(cropInfo["offsX"]);
+                int top = previewBox.Top + Convert.ToInt32(cropInfo["offsY"]);
+                _offs.Add(n.Text,String.Concat(left, ",", top));
+
+                //Debug.WriteLine(n.Text);
+                //foreach(KeyValuePair<string,string> s in cropInfo)
+                //    if(s.Value != null)
+                //        Debug.Write(s.Key + ":" + s.Value + ", ");
+                //Debug.WriteLine("");
+
                 // determine cropArea using supplied params
                 if (cropInfo["cropX"] != null && cropInfo["cropY"] != null && cropInfo["cropW"] != null && cropInfo["cropH"] != null)
                 {
-                    Rectangle cropArea = new Rectangle(int.Parse(cropInfo["cropX"]), int.Parse(cropInfo["cropY"]),
-                                                       int.Parse(cropInfo["cropW"]), int.Parse(cropInfo["cropH"]));
+                    // prevent OutOfMemoryException by making sure coords are in bounds
+                    int cropx = int.Parse(cropInfo["cropX"]);
+                    int cropy = int.Parse(cropInfo["cropY"]);
+                    int cropw = int.Parse(cropInfo["cropW"]);
+                    int croph = int.Parse(cropInfo["cropH"]);
+                    if (cropy + croph > imageToProcess.Height) croph = imageToProcess.Height - cropy;
+                    if (cropx + cropw > imageToProcess.Width) cropw = imageToProcess.Width - cropx;
+                    Rectangle cropArea = new Rectangle(cropx, cropy, cropw, croph);
                     imageToProcess = cropImage(imageToProcess, cropArea);
                 }
 
@@ -100,7 +118,21 @@ namespace SpriteEditor
             // all done, set zoom level to supplied sizeMultiplier
             if (defaultInfo["sizeMultiplier"] != null)
                 _zoomLevel = int.Parse(defaultInfo["sizeMultiplier"]);
-            cmbStateToPreview.SelectedItem = "SPRITE_STATE_DEFAULT";
+
+            // select STATE according to TREE selection
+            if (tree.SelectedNode != null)
+            {
+                if (tree.SelectedNode.Tag.Equals("State"))
+                    cmbStateToPreview.SelectedItem = tree.SelectedNode.Text;
+                if (tree.SelectedNode.Tag.Equals("Parameter"))
+                    cmbStateToPreview.SelectedItem = tree.SelectedNode.Parent.Text;
+                if (tree.SelectedNode.Tag.Equals("Value"))
+                    cmbStateToPreview.SelectedItem = tree.SelectedNode.Parent.Parent.Text;
+                if (tree.SelectedNode.Tag.Equals("File") || tree.SelectedNode.Tag.Equals("Index"))
+                    cmbStateToPreview.SelectedItem = "SPRITE_STATE_DEFAULT";
+            }
+            else
+                cmbStateToPreview.SelectedItem = "SPRITE_STATE_DEFAULT";
         }
 
         private void cmbStateToPreview_SelectedIndexChanged(object sender, EventArgs e)
@@ -108,6 +140,9 @@ namespace SpriteEditor
             previewBox.Image = _previewable[cmbStateToPreview.SelectedIndex];
             previewBox.Width = previewBox.Image.Width * _zoomLevel;
             previewBox.Height = previewBox.Image.Height * _zoomLevel;
+            string[] xy = _offs[cmbStateToPreview.Text].Split(',');
+            previewBox.Left = Convert.ToInt32(xy[0]);
+            previewBox.Top = Convert.ToInt32(xy[1]);
         }
 
         private static Image cropImage(Image img, Rectangle rect)
@@ -141,11 +176,6 @@ namespace SpriteEditor
                 _zoomLevel--;
             previewBox.Width = previewBox.Image.Width * _zoomLevel;
             previewBox.Height = previewBox.Image.Height * _zoomLevel;
-        }
-
-        private void frmPreview_Load(object sender, EventArgs e)
-        {
-
         }
     }
 }
