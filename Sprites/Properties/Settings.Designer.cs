@@ -94,5 +94,41 @@ namespace SpriteEditor.Properties {
                 this["FormLeft"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string lastOpenedSpriteDir {
+            get {
+                return ((string)(this["lastOpenedSpriteDir"]));
+            }
+            set {
+                this["lastOpenedSpriteDir"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string lastSavedDir {
+            get {
+                return ((string)(this["lastSavedDir"]));
+            }
+            set {
+                this["lastSavedDir"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string lastOpenedImageDir {
+            get {
+                return ((string)(this["lastOpenedImageDir"]));
+            }
+            set {
+                this["lastOpenedImageDir"] = value;
+            }
+        }
     }
 }

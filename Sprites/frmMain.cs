@@ -1,14 +1,13 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
-using System.Drawing.Drawing2D;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
+using Microsoft.Win32;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -17,18 +16,22 @@ namespace SpriteEditor
     public partial class frmMain : Form
     {
         private static readonly Regex _regex = new Regex(@"\d+$");
-        private string _request = "";
-        private string _workingFile = "";
-        private Image _imageOriginal;
-        private List<string> _imageLocations;
-        private List<Image> _images;
-        private List<ToolStripMenuItem> _dependencies; 
+
+        private readonly string[] _possibleActions = {"walk", "fly", "run", "jump", "destroy", "death"};
+
+        private readonly string[] _possibleFlags = {
+                                                       "isCollector", "isItem", "disablePhysics",
+                                                       "disableWindowCollide", "disableSpriteCollide",
+                                                       "disableJump", "doFadeOut"
+                                                   };
+
         private readonly string[] _possibleParams = {
                                                         "uri", "flipX", "sizeMultiplier", "sizeDivider", "frameDelay",
                                                         "cropX", "cropY", "cropW", "cropH",
                                                         "offsX", "offsY", "isChain", "usePrevious", "autoClose",
                                                         "transparent", "walkMultiplier"
                                                     };
+
         private readonly string[] _possibleStates = {
                                                         "SPRITE_META_DATA", "SPRITE_STATE_DEFAULT",
                                                         "SPRITE_STATE_STAND_LEFT", "SPRITE_STATE_STAND_RIGHT",
@@ -39,68 +42,62 @@ namespace SpriteEditor
                                                         "SPRITE_STATE_FLY_LEFT", "SPRITE_STATE_FLY_RIGHT"
                                                     };
 
-        private readonly string[] _possibleFlags = {
-                                                       "isCollector", "isItem", "disablePhysics",
-                                                       "disableWindowCollide", "disableSpriteCollide",
-                                                       "disableJump", "doFadeOut"
-                                                   };
-
-        private readonly string[] _possibleActions = {"walk", "fly", "run", "jump", "destroy", "death"};
+        private List<ToolStripMenuItem> _dependencies;
+        private List<string> _imageLocations;
+        private Image _imageOriginal;
+        private List<Image> _images;
+        private string _request = "";
+        private string _workingFile = "";
 
         public frmMain() { InitializeComponent(); }
 
         // application start
         private void frmMain_Load(object sender, EventArgs e)
         {
+            // instantiate form vars
             _images = new List<Image>();
             _imageLocations = new List<string>();
             _dependencies = new List<ToolStripMenuItem>();
 
+            // set up picturebox
             imageDisplay.Width = imageDisplay.Image.Width;
             imageDisplay.Height = imageDisplay.Image.Height;
             _imageOriginal = imageDisplay.Image;
             populateRecentFiles();
 
+            // use remembered window locations
             Width = Properties.Settings.Default.FormWidth > 0 ? Properties.Settings.Default.FormWidth : 675;
             Height = Properties.Settings.Default.FormHeight > 0 ? Properties.Settings.Default.FormHeight : 375;
             splitContainer1.SplitterDistance = Properties.Settings.Default.SplitterDistance > 0 ? Properties.Settings.Default.SplitterDistance : 460;
             Top = Properties.Settings.Default.SplitterDistance > -5 ? Properties.Settings.Default.FormTop : 20;
             Left = Properties.Settings.Default.SplitterDistance > -5 ? Properties.Settings.Default.FormLeft : 20;
 
-            foreach (string s in _possibleParams)
-            {
-                ToolStripMenuItem addThis = new ToolStripMenuItem(s, null, addParameter_Click);
+            // populate menus
+            foreach (ToolStripMenuItem addThis in _possibleParams.Select(s => new ToolStripMenuItem(s, null, addParameter_Click)))
                 addParameterMenuItem.DropDownItems.Add(addThis);
-            }
-
-            foreach (string s in _possibleStates)
-            {
-                ToolStripMenuItem addThis = new ToolStripMenuItem(s, null, addState_Click);
+            foreach (ToolStripMenuItem addThis in _possibleStates.Select(s => new ToolStripMenuItem(s, null, addState_Click)))
                 addStateMenuItem.DropDownItems.Add(addThis);
-            }
-
-            foreach (string s in _possibleFlags)
-            {
-                ToolStripMenuItem addThis = new ToolStripMenuItem(s, null, addFlagOrAction_Click);
+            foreach (ToolStripMenuItem addThis in _possibleFlags.Select(s => new ToolStripMenuItem(s, null, addFlagOrAction_Click)))
                 addFlagMenuItem.DropDownItems.Add(addThis);
-            }
-
-            foreach (string s in _possibleActions)
-            {
-                ToolStripMenuItem addThis = new ToolStripMenuItem(s, null, addFlagOrAction_Click);
+            foreach (ToolStripMenuItem addThis in _possibleActions.Select(s => new ToolStripMenuItem(s, null, addFlagOrAction_Click)))
                 addActionMenuItem.DropDownItems.Add(addThis);
-            }
+
+            // handle command line args
+            string fileToOpen = "";
+            foreach (string arg in Environment.GetCommandLineArgs().Where(arg => arg.EndsWith("spr") || arg.EndsWith("spi")))
+                fileToOpen = arg;
+            if (!fileToOpen.Equals("") && File.Exists(fileToOpen))
+                loadSprite(fileToOpen);
         }
 
         // event handler for add flags
         private void addFlagOrAction_Click(object sender, EventArgs e)
         {
             ToolStripMenuItem paramToAdd = sender as ToolStripMenuItem;
-            if (treeView.SelectedNode != null && treeView.SelectedNode.Tag.Equals("Parameter") && paramToAdd != null)
-            {
-                treeView.SelectedNode.Nodes.Add(getNewNode(paramToAdd.Text, "Value"));
-                treeView.SelectedNode.Expand();
-            }
+            if (treeView.SelectedNode == null || !treeView.SelectedNode.Tag.Equals("Parameter") || paramToAdd == null)
+                return;
+            treeView.SelectedNode.Nodes.Add(getNewNode(paramToAdd.Text, "Value"));
+            treeView.SelectedNode.Expand();
         }
 
         // event handler for add parameter
@@ -116,21 +113,30 @@ namespace SpriteEditor
                 MessageBox.Show("Please select a STATE in the tree to add the parameter to.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
 
-        // file > import
+        // event handler: file > import
         private void menuImport_Click(object sender, EventArgs e)
         {
+            // confirmUnsavedChanges with user that unsaved changes will be lsot
+            if (confirmUnsavedChanges() == DialogResult.Cancel) return;
             try
             {
+                string defaultDir = Properties.Settings.Default.lastOpenedSpriteDir;
+                if (defaultDir.Equals("") || !Directory.Exists(defaultDir))
+                    defaultDir = getSpriteCollectionLocation().Equals("") ? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) : getSpriteCollectionLocation();
                 OpenFileDialog openFile = new OpenFileDialog
                                               {
-                                                  InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                                                  InitialDirectory = defaultDir,
                                                   Filter = "Sprite Files(*.spr;*.spi)|*.spr;*.spi|All files (*.*)|*.*",
                                                   RestoreDirectory = true,
                                                   Multiselect = false
                                               };
                 DialogResult result = openFile.ShowDialog();
                 if (result == DialogResult.OK)
+                {
                     loadSprite(openFile.FileName);
+                    Properties.Settings.Default.lastOpenedSpriteDir = Path.GetDirectoryName(openFile.FileName);
+                    Properties.Settings.Default.Save();
+                }
                 sortTree();
             }
             catch (FileNotFoundException ex)
@@ -421,19 +427,13 @@ namespace SpriteEditor
         }
 
         // file > exit
-        private void menuExit_Click(object sender, EventArgs e) { Application.Exit(); }  // TO DO:  Save App settings
+        private void menuExit_Click(object sender, EventArgs e) { Application.Exit(); }
 
         // file > new
         private void newFileMenuItem_Click(object sender, EventArgs e)
         {
-
-            // confirm with user that unsaved changed will be lost
-            if (treeView.Nodes.Count != 0)
-            {
-                DialogResult result = MessageBox.Show("You will lose any unsaved changes to " + treeView.Nodes[0].Text + ".", "New File", MessageBoxButtons.OKCancel, MessageBoxIcon.Question);
-                if (result == DialogResult.Cancel)
-                    return;
-            }
+            // confirmUnsavedChanges with user that unsaved changed will be lost
+            if (confirmUnsavedChanges() == DialogResult.Cancel) return;
 
             // display sprite wizard, get values, process values
             using (var form = new frmWizard())
@@ -460,6 +460,7 @@ namespace SpriteEditor
                     treeView.Nodes[0].Nodes.Add(getNewNode("SPRITE_META_DATA", "State"));
                     treeView.Nodes[0].Nodes.Add(getNewNode("SPRITE_STATE_DEFAULT", "State"));
 
+                    // process frmWizard results and populate tree accordingly
                     foreach (KeyValuePair<string, string> i in sprInfo)
                     {
                         switch (i.Key)
@@ -514,10 +515,16 @@ namespace SpriteEditor
         {
             if (_request.Equals("grabHTML"))
             {
+                if (treeView.SelectedNode == null)
+                {
+                    MessageBox.Show("Please select a valid Tree Node to place the value in.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
                 string[] coords = statusCoordsLabel.Text.Split(new[] { 'X', 'Y', ':', ' ' }, StringSplitOptions.RemoveEmptyEntries);
                 Bitmap getThisColor = (Bitmap)imageDisplay.Image;
                 Color chosenColor = getThisColor.GetPixel(int.Parse(coords[0]), int.Parse(coords[1]));
-                if (treeView.SelectedNode == null) { MessageBox.Show("Please select a valid Tree Node to place the value in.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+                
                 string chosenColorHTML = hexConverter(chosenColor);
                 TreeNode addHere = treeView.SelectedNode;
                 if (addHere.Tag.Equals("Value"))
@@ -537,8 +544,13 @@ namespace SpriteEditor
             }
             else if (_request.Equals("grabX"))
             {
+                if (treeView.SelectedNode == null)
+                {
+                    MessageBox.Show("Please select a valid Tree Node to place the value in.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
                 string[] coords = statusCoordsLabel.Text.Split(new[] { 'X', 'Y', ':', ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                if (treeView.SelectedNode == null) { MessageBox.Show("Please select a valid Tree Node to place the value in.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
                 TreeNode addHere = treeView.SelectedNode;
                 if (addHere.Tag.Equals("Value"))
                     addHere.Text = coords[0];
@@ -557,8 +569,13 @@ namespace SpriteEditor
             }
             else if (_request.Equals("grabY"))
             {
+                if (treeView.SelectedNode == null)
+                {
+                    MessageBox.Show("Please select a valid Tree Node to place the value in.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning); 
+                    return;
+                }
+
                 string[] coords = statusCoordsLabel.Text.Split(new[] { 'X', 'Y', ':', ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                if (treeView.SelectedNode == null) { MessageBox.Show("Please select a valid Tree Node to place the value in.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
                 TreeNode addHere = treeView.SelectedNode;
                 if (addHere.Tag.Equals("Value"))
                     addHere.Text = coords[1];
@@ -622,12 +639,14 @@ namespace SpriteEditor
 
         void dynamicMenuItem_Click(object sender, EventArgs e)
         {
+            // confirmUnsavedChanges with user that unsaved changed will be lost
+            if (confirmUnsavedChanges() == DialogResult.Cancel) return;
+
             ToolStripMenuItem sent = sender as ToolStripMenuItem;
             if (sent != null && File.Exists(sent.Tag.ToString()))
                 loadSprite(sent.Tag.ToString());
             else
                 MessageBox.Show("Error: File not found.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-
         }
 
         // help > visit avian website
@@ -662,9 +681,12 @@ namespace SpriteEditor
         {
             try
             {
+                string defaultDir = Properties.Settings.Default.lastOpenedSpriteDir;
+                if (defaultDir.Equals("") || !Directory.Exists(defaultDir))
+                    defaultDir = getSpriteCollectionLocation().Equals("") ? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) : getSpriteCollectionLocation();
                 OpenFileDialog openFile = new OpenFileDialog
                                               {
-                                                  InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                                                  InitialDirectory = defaultDir,
                                                   Filter = "Sprite Files(*.spr;*.spi;*.json)|*.spr;*.spi;*.json|All files (*.*)|*.*",
                                                   RestoreDirectory = true,
                                                   Multiselect = false
@@ -679,6 +701,8 @@ namespace SpriteEditor
 
                     // parse into JSON object, serialize, save file
                     File.WriteAllText(openFile.FileName, prettifyJSON(jsonString));
+                    Properties.Settings.Default.lastOpenedSpriteDir = Path.GetDirectoryName(openFile.FileName);
+                    Properties.Settings.Default.Save();
                 }
                 statusLabel.Text = openFile.SafeFileName + " was cleaned and updated.";
                 openFile.Dispose();
@@ -730,8 +754,12 @@ namespace SpriteEditor
                 statusLabel.Text = "Cannot save. Empty file!";
                 return;
             }
+            string defaultDir = Properties.Settings.Default.lastSavedDir;
+            if (defaultDir.Equals("") || !Directory.Exists(defaultDir))
+                defaultDir = getSpriteCollectionLocation().Equals("") ? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) : getSpriteCollectionLocation();
             SaveFileDialog saveFileDialog1 = new SaveFileDialog
                                                  {
+                                                     InitialDirectory = defaultDir,
                                                      Filter = "Sprite Files(*.spr;*.spi)|*.spr;*.spi|All files (*.*)|*.*",
                                                      FilterIndex = 1,
                                                      RestoreDirectory = true,
@@ -746,6 +774,8 @@ namespace SpriteEditor
                 _workingFile = saveFileDialog1.FileName;
                 addMRU(saveFileDialog1.FileName);
                 populateRecentFiles();
+                Properties.Settings.Default.lastSavedDir = Path.GetDirectoryName(saveFileDialog1.FileName);
+                Properties.Settings.Default.Save();
             }
             Debug.WriteLine(writeJsonFromTree(treeView));
         }
@@ -847,15 +877,6 @@ namespace SpriteEditor
             statusCoordsLabel.Text = "X: " + (e.X / zoomSlider.Value) + " Y: " + (e.Y / zoomSlider.Value);
         }
 
-        // helper for zoom functionality
-        //public Image pictureBoxZoom(Image img, Size size)
-        //{
-        //    Bitmap bm = new Bitmap(img, Convert.ToInt32(img.Width * size.Width), Convert.ToInt32(img.Height * size.Height));
-        //    Graphics grap = Graphics.FromImage(bm);
-        //    grap.InterpolationMode = InterpolationMode.HighQualityBicubic;
-        //    return bm;
-        //}
-
         // view > zoom in selected
         private void zoomInToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -890,12 +911,15 @@ namespace SpriteEditor
         {
             ToolStripMenuItem mi = sender as ToolStripMenuItem;
             if (mi != null)
+            {
                 imageDisplay.Image = new Bitmap(mi.Tag.ToString());
-            _imageOriginal = imageDisplay.Image;
-            zoomSlider.Value = 1;
-            imageDisplay.Width = imageDisplay.Image.Width;
-            imageDisplay.Height = imageDisplay.Image.Height;
-            statusLabel.Text = Text + " loaded OK.";
+                _imageOriginal = imageDisplay.Image;
+                zoomSlider.Value = 1;
+                imageDisplay.Width = imageDisplay.Image.Width;
+                imageDisplay.Height = imageDisplay.Image.Height;
+                imageDisplay.Tag = mi.Text;
+                statusLabel.Text = Text + " loaded OK.";
+            }
         }
 
         // helper for adding recently used files
@@ -1038,9 +1062,12 @@ namespace SpriteEditor
             }
             try
             {
+                string defaultDir = Properties.Settings.Default.lastOpenedImageDir;
+                if (defaultDir.Equals("") || !Directory.Exists(defaultDir))
+                    defaultDir = getSpriteCollectionLocation().Equals("") ? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) : getSpriteCollectionLocation();
                 OpenFileDialog openFile = new OpenFileDialog
                                               {
-                                                  InitialDirectory = "c:\\",
+                                                  InitialDirectory = defaultDir,
                                                   Filter = "Image Files(*.png;*.jpg;*.gif;*.bmp)|*.png;*.jpg;*.gif;*.bmp|All files (*.*)|*.*",
                                                   RestoreDirectory = true,
                                                   Multiselect = false
@@ -1059,6 +1086,8 @@ namespace SpriteEditor
                     _imageOriginal = imageDisplay.Image;
                     _images.Add(new Bitmap(openFile.FileName));
                     _imageLocations.Add(openFile.FileName);
+                    Properties.Settings.Default.lastOpenedImageDir = Path.GetDirectoryName(openFile.FileName);
+                    Properties.Settings.Default.Save();
                 }
                 else
                 {
@@ -1088,16 +1117,15 @@ namespace SpriteEditor
             dependenciesToolStripMenuItem.Enabled = dependenciesToolStripMenuItem.DropDownItems.Count != 0;
         }
 
-        // 
         private void useImageURIToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            if (treeView.SelectedNode != null && treeView.SelectedNode.Tag.Equals("Parameter"))
+            if (treeView.SelectedNode != null)
             {
                 TreeNode addHere = treeView.SelectedNode;
-                if (addHere.Nodes.Count == 0)
-                    addHere.Nodes.Add(getNewNode(imageDisplay.Tag.ToString(), "Value"));
-                else
+                if (treeView.SelectedNode.Tag.Equals("Parameter"))
                     addHere.Nodes[0].Text = imageDisplay.Tag.ToString();
+                else if (treeView.SelectedNode.Tag.Equals("Value"))
+                    addHere.Text = imageDisplay.Tag.ToString();
                 statusLabel.Text = "Operation successful.";
             }
             else
@@ -1160,21 +1188,6 @@ namespace SpriteEditor
         }
 
         // custom TreeNode sorter implementation
-        public class NodeSorter : IComparer
-        {
-            public int Compare(object thisObj, object otherObj)
-            {
-                TreeNode thisNode = thisObj as TreeNode;
-                TreeNode otherNode = otherObj as TreeNode;
-
-                //if (thisNode.Text.Equals("SPRITE_META_DATA") || thisNode.Text.Equals("SPRITE_STATE_DEFAULT"))
-                //    return 1;
-                if (thisNode.Tag.Equals("Parameter") || thisNode.Tag.Equals("Value"))
-                    return 0;
-
-                return thisNode.Text.CompareTo(otherNode.Text);
-            }
-        }
 
         private void toolsToolStripMenuItem_DropDownOpening(object sender, EventArgs e)
         {
@@ -1215,11 +1228,6 @@ namespace SpriteEditor
             statusLabel.Text = "Open associated images, *.spi, and *.spr files";
         }
 
-        private void loadedImagesToolStripMenuItem_MouseEnter(object sender, EventArgs e)
-        {
-            statusLabel.Text = "List of included image files in the *.spr file";
-        }
-
         private void openImageToolStripMenuItem_MouseEnter(object sender, EventArgs e)
         {
             statusLabel.Text = "Add new image to current sprite";
@@ -1235,6 +1243,8 @@ namespace SpriteEditor
             statusLabel.Text = "View *.spr file format specs in web browser";
         }
 
+
+        // File > Save clicked
         private void saveToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (_workingFile.Equals(""))
@@ -1256,6 +1266,7 @@ namespace SpriteEditor
             statusLabel.Text = "File successfully saved!";
         }
 
+        // add state increment event handler
         private void incrementStateMenuItem_Click(object sender, EventArgs e)
         {
             string stateNo = _regex.Match(treeView.SelectedNode.Text).Value;
@@ -1264,8 +1275,10 @@ namespace SpriteEditor
             sortTree();
         }
 
+        // helper to sort tree
         private void sortTree() { treeView.TreeViewNodeSorter = new NodeSorter(); }
 
+        // Add New State > Manual Entry clciked
         private void manualEntryToolStripMenuItem2_Click(object sender, EventArgs e)
         {
             ToolStripMenuItem s = sender as ToolStripMenuItem;
@@ -1275,16 +1288,19 @@ namespace SpriteEditor
             treeView.SelectedNode.LastNode.BeginEdit();
         }
 
+        // param context menu > move up clicked
         private void moveUpMenuItem_Click(object sender, EventArgs e)
         {
             treeView.SelectedNode.MoveUp();
         }
 
+        // param context menu > move down clicked
         private void moveDownMenuItem_Click(object sender, EventArgs e)
         {
             treeView.SelectedNode.MoveDown();
         }
 
+        // application exit, save user prefs
         private void frmMain_FormClosed(object sender, FormClosedEventArgs e)
         {
             Properties.Settings.Default.FormHeight = Height;
@@ -1296,42 +1312,43 @@ namespace SpriteEditor
             Debug.WriteLine("Top: " + Top + " Left: " + Left);
         }
 
+        // add parameter > spawn clicked
         private void spawnToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            if (treeView.SelectedNode != null && treeView.SelectedNode.Tag.Equals("State") && !treeView.SelectedNode.Nodes.Find("spawn", true).Any())
-            {
-                treeView.SelectedNode.Expand();
-                TreeNode spawnNode = getNewNode("spawn", "Index");
-                TreeNode groupNode = getNewNode("[1]", "Index");
-                treeView.SelectedNode.Nodes.Add(spawnNode);
-                spawnNode.Nodes.Add(groupNode);
-                groupNode.Nodes.Add(getNewNode("uri", "Parameter"));
-                groupNode.Nodes.Add(getNewNode("spawnX", "Parameter"));
-                groupNode.Nodes.Add(getNewNode("spawnY", "Parameter"));
-                groupNode.Nodes.Add(getNewNode("spawnExplode", "Parameter"));
-                spawnNode.Expand();
-                groupNode.Expand();
-            }
+            if (treeView.SelectedNode == null || !treeView.SelectedNode.Tag.Equals("State") ||
+                treeView.SelectedNode.Nodes.Find("spawn", true).Any()) return;
+            treeView.SelectedNode.Expand();
+            TreeNode spawnNode = getNewNode("spawn", "Index");
+            TreeNode groupNode = getNewNode("[1]", "Index");
+            treeView.SelectedNode.Nodes.Add(spawnNode);
+            spawnNode.Nodes.Add(groupNode);
+            groupNode.Nodes.Add(getNewNode("uri", "Parameter"));
+            groupNode.Nodes.Add(getNewNode("spawnX", "Parameter"));
+            groupNode.Nodes.Add(getNewNode("spawnY", "Parameter"));
+            groupNode.Nodes.Add(getNewNode("spawnExplode", "Parameter"));
+            spawnNode.Expand();
+            groupNode.Expand();
         }
 
+        // add parameter > fixtures clicked
         private void fixturesToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            if (treeView.SelectedNode != null && treeView.SelectedNode.Tag.Equals("State") && !treeView.SelectedNode.Nodes.Find("fixtures", true).Any())
-            {
-                treeView.SelectedNode.Expand();
-                TreeNode spawnNode = getNewNode("fixtures", "Index");
-                TreeNode groupNode = getNewNode("[1]", "Index");
-                treeView.SelectedNode.Nodes.Add(spawnNode);
-                spawnNode.Nodes.Add(groupNode);
-                groupNode.Nodes.Add(getNewNode("x", "Parameter"));
-                groupNode.Nodes.Add(getNewNode("y", "Parameter"));
-                groupNode.Nodes.Add(getNewNode("w", "Parameter"));
-                groupNode.Nodes.Add(getNewNode("h", "Parameter"));
-                spawnNode.Expand();
-                groupNode.Expand();
-            }
+            if (treeView.SelectedNode == null || !treeView.SelectedNode.Tag.Equals("State") ||
+                treeView.SelectedNode.Nodes.Find("fixtures", true).Any()) return;
+            treeView.SelectedNode.Expand();
+            TreeNode spawnNode = getNewNode("fixtures", "Index");
+            TreeNode groupNode = getNewNode("[1]", "Index");
+            treeView.SelectedNode.Nodes.Add(spawnNode);
+            spawnNode.Nodes.Add(groupNode);
+            groupNode.Nodes.Add(getNewNode("x", "Parameter"));
+            groupNode.Nodes.Add(getNewNode("y", "Parameter"));
+            groupNode.Nodes.Add(getNewNode("w", "Parameter"));
+            groupNode.Nodes.Add(getNewNode("h", "Parameter"));
+            spawnNode.Expand();
+            groupNode.Expand();
         }
 
+        // help > about clicked
         private void aboutToolStripMenuItem_Click(object sender, EventArgs e)
         {
             using (var form = new frmAbout())
@@ -1339,57 +1356,34 @@ namespace SpriteEditor
                 form.ShowDialog();
             }
         }
-    }
 
-    public static class Extensions
-    {
-        public static void MoveUp(this TreeNode node)
+        // helper to get sprite collection folder from registry
+        private string getSpriteCollectionLocation()
         {
-            TreeNode parent = node.Parent;
-            TreeView view = node.TreeView;
-            if (parent != null)
-            {
-                int index = parent.Nodes.IndexOf(node);
-                if (index > 0)
-                {
-                    parent.Nodes.RemoveAt(index);
-                    parent.Nodes.Insert(index - 1, node);
-                }
-            }
-            else if (node.TreeView.Nodes.Contains(node))
-            {
-                int index = view.Nodes.IndexOf(node);
-                if (index > 0)
-                {
-                    view.Nodes.RemoveAt(index);
-                    view.Nodes.Insert(index - 1, node);
-                }
-            }
+            object k = Registry.GetValue("HKEY_CURRENT_USER\\Software\\Sprites", "", "");
+            string val = k != null ? string.Concat(k, "\\collection") : "";
+            return Directory.Exists(val) ? val : "";
         }
 
-        public static void MoveDown(this TreeNode node)
+        // tools > sprite collection clicked
+        private void openSpriteCollectionToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            TreeNode parent = node.Parent;
-            TreeView view = node.TreeView;
-            if (parent != null)
-            {
-                int index = parent.Nodes.IndexOf(node);
-                if (index < parent.Nodes.Count - 1)
-                {
-                    parent.Nodes.RemoveAt(index);
-                    parent.Nodes.Insert(index + 1, node);
-                }
-            }
-            else if (view != null && view.Nodes.Contains(node))
-            {
-                int index = view.Nodes.IndexOf(node);
-                if (index < view.Nodes.Count - 1)
-                {
-                    view.Nodes.RemoveAt(index);
-                    view.Nodes.Insert(index + 1, node);
-                }
-            }
+            if (!getSpriteCollectionLocation().Equals(""))
+                Process.Start(getSpriteCollectionLocation());
+            else
+                statusLabel.Text = "Unable to locate sprites collection. Is sprites installed?";
+        }
+
+        // confirmUnsavedChanges unsaved changes will be lost with user
+        private DialogResult confirmUnsavedChanges()
+        {
+            return treeView.Nodes.Count != 0 ? MessageBox.Show("You will lose any unsaved changes to " + treeView.Nodes[0].Text + ".",
+                "New File", MessageBoxButtons.OKCancel, MessageBoxIcon.Question) : DialogResult.None;
+        }
+
+        private void testToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Image i = imageDisplay.Image;
         }
     }
-
 }

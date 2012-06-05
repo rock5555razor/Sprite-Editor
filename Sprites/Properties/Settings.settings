@@ -20,5 +20,14 @@
     <Setting Name="FormLeft" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">-5</Value>
     </Setting>
+    <Setting Name="lastOpenedSpriteDir" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="lastSavedDir" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="lastOpenedImageDir" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
   </Settings>
 </SettingsFile>

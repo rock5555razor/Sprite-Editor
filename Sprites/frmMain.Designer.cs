@@ -54,6 +54,7 @@
             this.testSpriteToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator6 = new System.Windows.Forms.ToolStripSeparator();
             this.prettifySPRToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.openSpriteCollectionToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem22 = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem30 = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem31 = new System.Windows.Forms.ToolStripMenuItem();
@@ -206,7 +207,7 @@
             this.saveToolStripMenuItem.Image = global::SpriteEditor.Properties.Resources.FloppyDisk;
             this.saveToolStripMenuItem.Name = "saveToolStripMenuItem";
             this.saveToolStripMenuItem.Size = new System.Drawing.Size(135, 22);
-            this.saveToolStripMenuItem.Text = "Save";
+            this.saveToolStripMenuItem.Text = "&Save";
             this.saveToolStripMenuItem.Click += new System.EventHandler(this.saveToolStripMenuItem_Click);
             // 
             // saveAsFileMenuItem
@@ -226,7 +227,7 @@
             // 
             this.recentSpritesToolStripMenuItem.Name = "recentSpritesToolStripMenuItem";
             this.recentSpritesToolStripMenuItem.Size = new System.Drawing.Size(135, 22);
-            this.recentSpritesToolStripMenuItem.Text = "Recent Files";
+            this.recentSpritesToolStripMenuItem.Text = "&Recent Files";
             this.recentSpritesToolStripMenuItem.MouseLeave += new System.EventHandler(this.setStatusLabelDefault_OnMouseLeave);
             // 
             // toolStripSeparator5
@@ -263,7 +264,7 @@
             this.openImageToolStripMenuItem.Image = global::SpriteEditor.Properties.Resources.FolderOpen_32x32_72;
             this.openImageToolStripMenuItem.Name = "openImageToolStripMenuItem";
             this.openImageToolStripMenuItem.Size = new System.Drawing.Size(147, 22);
-            this.openImageToolStripMenuItem.Text = "Open Image";
+            this.openImageToolStripMenuItem.Text = "&Open Image";
             this.openImageToolStripMenuItem.Click += new System.EventHandler(this.openImageToolStripMenuItem_Click);
             this.openImageToolStripMenuItem.MouseEnter += new System.EventHandler(this.openImageToolStripMenuItem_MouseEnter);
             this.openImageToolStripMenuItem.MouseLeave += new System.EventHandler(this.setStatusLabelDefault_OnMouseLeave);
@@ -273,7 +274,7 @@
             this.dependenciesToolStripMenuItem.Image = global::SpriteEditor.Properties.Resources.generic_picture;
             this.dependenciesToolStripMenuItem.Name = "dependenciesToolStripMenuItem";
             this.dependenciesToolStripMenuItem.Size = new System.Drawing.Size(147, 22);
-            this.dependenciesToolStripMenuItem.Text = "Dependencies";
+            this.dependenciesToolStripMenuItem.Text = "&Dependencies";
             this.dependenciesToolStripMenuItem.MouseEnter += new System.EventHandler(this.dependenciesToolStripMenuItem_MouseEnter);
             this.dependenciesToolStripMenuItem.MouseLeave += new System.EventHandler(this.setStatusLabelDefault_OnMouseLeave);
             // 
@@ -319,7 +320,7 @@
             this.hideTreeToolStripMenuItem.Image = global::SpriteEditor.Properties.Resources.XSDSchema_GraphLeftToRight;
             this.hideTreeToolStripMenuItem.Name = "hideTreeToolStripMenuItem";
             this.hideTreeToolStripMenuItem.Size = new System.Drawing.Size(147, 22);
-            this.hideTreeToolStripMenuItem.Text = "Hide Tree";
+            this.hideTreeToolStripMenuItem.Text = "Hide &Tree";
             this.hideTreeToolStripMenuItem.Click += new System.EventHandler(this.hideTreeToolStripMenuItem_Click);
             this.hideTreeToolStripMenuItem.MouseLeave += new System.EventHandler(this.setStatusLabelDefault_OnMouseLeave);
             // 
@@ -329,7 +330,8 @@
             this.spritePreviewToolStripMenuItem,
             this.testSpriteToolStripMenuItem,
             this.toolStripSeparator6,
-            this.prettifySPRToolStripMenuItem});
+            this.prettifySPRToolStripMenuItem,
+            this.openSpriteCollectionToolStripMenuItem});
             this.toolsToolStripMenuItem.Name = "toolsToolStripMenuItem";
             this.toolsToolStripMenuItem.Size = new System.Drawing.Size(46, 20);
             this.toolsToolStripMenuItem.Text = "&Tools";
@@ -339,8 +341,8 @@
             // 
             this.spritePreviewToolStripMenuItem.Image = global::SpriteEditor.Properties.Resources.search;
             this.spritePreviewToolStripMenuItem.Name = "spritePreviewToolStripMenuItem";
-            this.spritePreviewToolStripMenuItem.Size = new System.Drawing.Size(146, 22);
-            this.spritePreviewToolStripMenuItem.Text = "Sprite Preview";
+            this.spritePreviewToolStripMenuItem.Size = new System.Drawing.Size(159, 22);
+            this.spritePreviewToolStripMenuItem.Text = "&Sprite Preview";
             this.spritePreviewToolStripMenuItem.Click += new System.EventHandler(this.spritePreviewToolStripMenuItem_Click);
             this.spritePreviewToolStripMenuItem.MouseEnter += new System.EventHandler(this.spritePreviewToolStripMenuItem_MouseEnter);
             this.spritePreviewToolStripMenuItem.MouseLeave += new System.EventHandler(this.setStatusLabelDefault_OnMouseLeave);
@@ -349,8 +351,8 @@
             // 
             this.testSpriteToolStripMenuItem.Image = global::SpriteEditor.Properties.Resources.favicon;
             this.testSpriteToolStripMenuItem.Name = "testSpriteToolStripMenuItem";
-            this.testSpriteToolStripMenuItem.Size = new System.Drawing.Size(146, 22);
-            this.testSpriteToolStripMenuItem.Text = "Test Sprite";
+            this.testSpriteToolStripMenuItem.Size = new System.Drawing.Size(159, 22);
+            this.testSpriteToolStripMenuItem.Text = "&Test Sprite";
             this.testSpriteToolStripMenuItem.Click += new System.EventHandler(this.testSpriteToolStripMenuItem_Click);
             this.testSpriteToolStripMenuItem.MouseEnter += new System.EventHandler(this.testSpriteToolStripMenuItem_MouseEnter);
             this.testSpriteToolStripMenuItem.MouseLeave += new System.EventHandler(this.setStatusLabelDefault_OnMouseLeave);
@@ -358,18 +360,26 @@
             // toolStripSeparator6
             // 
             this.toolStripSeparator6.Name = "toolStripSeparator6";
-            this.toolStripSeparator6.Size = new System.Drawing.Size(143, 6);
+            this.toolStripSeparator6.Size = new System.Drawing.Size(156, 6);
             // 
             // prettifySPRToolStripMenuItem
             // 
             this.prettifySPRToolStripMenuItem.Image = global::SpriteEditor.Properties.Resources.XSDSchema_NameSpaceIcon;
             this.prettifySPRToolStripMenuItem.Name = "prettifySPRToolStripMenuItem";
-            this.prettifySPRToolStripMenuItem.Size = new System.Drawing.Size(146, 22);
+            this.prettifySPRToolStripMenuItem.Size = new System.Drawing.Size(159, 22);
             this.prettifySPRToolStripMenuItem.Text = "&Prettify SPR";
             this.prettifySPRToolStripMenuItem.ToolTipText = "Gives SPR Text Contents Proper Formatting";
             this.prettifySPRToolStripMenuItem.Click += new System.EventHandler(this.prettifySPRToolStripMenuItem_Click);
             this.prettifySPRToolStripMenuItem.MouseEnter += new System.EventHandler(this.prettifySPRToolStripMenuItem_OnMouseEnter);
             this.prettifySPRToolStripMenuItem.MouseLeave += new System.EventHandler(this.setStatusLabelDefault_OnMouseLeave);
+            // 
+            // openSpriteCollectionToolStripMenuItem
+            // 
+            this.openSpriteCollectionToolStripMenuItem.Image = global::SpriteEditor.Properties.Resources.NewDocuments_32x32;
+            this.openSpriteCollectionToolStripMenuItem.Name = "openSpriteCollectionToolStripMenuItem";
+            this.openSpriteCollectionToolStripMenuItem.Size = new System.Drawing.Size(159, 22);
+            this.openSpriteCollectionToolStripMenuItem.Text = "Sprite Collection";
+            this.openSpriteCollectionToolStripMenuItem.Click += new System.EventHandler(this.openSpriteCollectionToolStripMenuItem_Click);
             // 
             // toolStripMenuItem22
             // 
@@ -388,7 +398,7 @@
             this.toolStripMenuItem30.Image = ((System.Drawing.Image)(resources.GetObject("toolStripMenuItem30.Image")));
             this.toolStripMenuItem30.Name = "toolStripMenuItem30";
             this.toolStripMenuItem30.Size = new System.Drawing.Size(197, 22);
-            this.toolStripMenuItem30.Text = "Sprite Editor Website";
+            this.toolStripMenuItem30.Text = "Sprite Editor &Website";
             this.toolStripMenuItem30.Click += new System.EventHandler(this.checkForUpdatesToolStripMenuItem_Click);
             this.toolStripMenuItem30.MouseEnter += new System.EventHandler(this.checkForUpdatesToolStripMenuItem_MouseEnter);
             this.toolStripMenuItem30.MouseLeave += new System.EventHandler(this.setStatusLabelDefault_OnMouseLeave);
@@ -398,7 +408,7 @@
             this.toolStripMenuItem31.Image = global::SpriteEditor.Properties.Resources.favicon;
             this.toolStripMenuItem31.Name = "toolStripMenuItem31";
             this.toolStripMenuItem31.Size = new System.Drawing.Size(197, 22);
-            this.toolStripMenuItem31.Text = "Submit Sprite";
+            this.toolStripMenuItem31.Text = "&Submit Sprite";
             this.toolStripMenuItem31.Click += new System.EventHandler(this.visitSpriteForumsToolStripMenuItem_Click);
             this.toolStripMenuItem31.MouseEnter += new System.EventHandler(this.visitSpriteForumsToolStripMenuItem_MouseEnter);
             this.toolStripMenuItem31.MouseLeave += new System.EventHandler(this.setStatusLabelDefault_OnMouseLeave);
@@ -408,7 +418,7 @@
             this.toolStripMenuItem32.Image = global::SpriteEditor.Properties.Resources.help;
             this.toolStripMenuItem32.Name = "toolStripMenuItem32";
             this.toolStripMenuItem32.Size = new System.Drawing.Size(197, 22);
-            this.toolStripMenuItem32.Text = "SPR File Documentation";
+            this.toolStripMenuItem32.Text = "SPR File &Documentation";
             this.toolStripMenuItem32.Click += new System.EventHandler(this.sPRFileDocumentationToolStripMenuItem_Click);
             this.toolStripMenuItem32.MouseEnter += new System.EventHandler(this.sPRFileDocumentationToolStripMenuItem_MouseEnter);
             this.toolStripMenuItem32.MouseLeave += new System.EventHandler(this.setStatusLabelDefault_OnMouseLeave);
@@ -423,7 +433,7 @@
             this.aboutToolStripMenuItem.Image = global::SpriteEditor.Properties.Resources.spriteeditor;
             this.aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
             this.aboutToolStripMenuItem.Size = new System.Drawing.Size(197, 22);
-            this.aboutToolStripMenuItem.Text = "About Sprite Editor";
+            this.aboutToolStripMenuItem.Text = "&About Sprite Editor";
             this.aboutToolStripMenuItem.Click += new System.EventHandler(this.aboutToolStripMenuItem_Click);
             this.aboutToolStripMenuItem.MouseLeave += new System.EventHandler(this.setStatusLabelDefault_OnMouseLeave);
             // 
@@ -477,7 +487,7 @@
             // 
             this.splitContainer1.Panel2.Controls.Add(this.treeView);
             this.splitContainer1.Size = new System.Drawing.Size(666, 293);
-            this.splitContainer1.SplitterDistance = 466;
+            this.splitContainer1.SplitterDistance = 472;
             this.splitContainer1.SplitterWidth = 3;
             this.splitContainer1.TabIndex = 5;
             // 
@@ -485,7 +495,7 @@
             // 
             this.zoomSlider.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.zoomSlider.LargeChange = 1;
-            this.zoomSlider.Location = new System.Drawing.Point(505, 275);
+            this.zoomSlider.Location = new System.Drawing.Point(508, 275);
             this.zoomSlider.Maximum = 8;
             this.zoomSlider.Minimum = 1;
             this.zoomSlider.Name = "zoomSlider";
@@ -521,7 +531,7 @@
             this.treeView.Location = new System.Drawing.Point(0, 0);
             this.treeView.Margin = new System.Windows.Forms.Padding(0);
             this.treeView.Name = "treeView";
-            this.treeView.Size = new System.Drawing.Size(193, 289);
+            this.treeView.Size = new System.Drawing.Size(187, 289);
             this.treeView.TabIndex = 5;
             this.treeView.NodeMouseClick += new System.Windows.Forms.TreeNodeMouseClickEventHandler(this.treeView_OnNodeMouseClick);
             // 
@@ -1192,6 +1202,7 @@
          private System.Windows.Forms.ToolStripSeparator toolStripSeparator20;
          private System.Windows.Forms.ToolStripMenuItem aboutToolStripMenuItem;
          private System.Windows.Forms.PictureBox imageDisplay;
+         private System.Windows.Forms.ToolStripMenuItem openSpriteCollectionToolStripMenuItem;
      }
  }
 

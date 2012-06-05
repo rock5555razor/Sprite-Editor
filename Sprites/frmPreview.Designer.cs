@@ -113,8 +113,9 @@
             // 
             // previewBox
             // 
+            this.previewBox.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.previewBox.Image = global::SpriteEditor.Properties.Resources.error;
-            this.previewBox.Location = new System.Drawing.Point(12, 37);
+            this.previewBox.Location = new System.Drawing.Point(40, 56);
             this.previewBox.Name = "previewBox";
             this.previewBox.Size = new System.Drawing.Size(64, 32);
             this.previewBox.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;

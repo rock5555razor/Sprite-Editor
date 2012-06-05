@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
 
@@ -48,17 +49,16 @@ namespace SpriteEditor
             if (defaultNode.Length != 0 && defaultNode[0].Nodes.Count != 0)
             {
                 foreach (TreeNode param in defaultNode[0].Nodes)
-                    if(param.Nodes.Count != 0)
+                    if (param.Nodes.Count != 0)
                         defaultInfo[param.Text] = param.Nodes[0].Text;
             }
 
             string trimmedPrevStateName = "";
-            //int[,] offs = new int[tree.Nodes[0].Nodes.Count, 2];
             
             // loop through each state Node in the tree and process
             foreach (TreeNode n in tree.Nodes[0].Nodes)
             {
-                Image imageToProcess = null;
+                Image imageToProcess = images[0];
                 // ignore META_DATA and populate combobox
                 if (n.Text.EndsWith("META_DATA")) continue;
                 if (cmbStateToPreview.ComboBox != null) cmbStateToPreview.ComboBox.Items.Add(n.Text);
@@ -80,43 +80,54 @@ namespace SpriteEditor
                 foreach (string s in _imageLocations)
                 {
                     if (s.Contains(cropInfo["uri"]))
-                        imageToProcess = _imageBitmaps[_imageLocations.IndexOf(s)];
+                        imageToProcess = images[_imageLocations.IndexOf(s)];
                 }
 
                 int left = previewBox.Left + Convert.ToInt32(cropInfo["offsX"]);
                 int top = previewBox.Top + Convert.ToInt32(cropInfo["offsY"]);
                 _offs.Add(n.Text,String.Concat(left, ",", top));
 
-                //Debug.WriteLine(n.Text);
-                //foreach(KeyValuePair<string,string> s in cropInfo)
-                //    if(s.Value != null)
-                //        Debug.Write(s.Key + ":" + s.Value + ", ");
-                //Debug.WriteLine("");
-
-                // determine cropArea using supplied params
-                if (cropInfo["cropX"] != null && cropInfo["cropY"] != null && cropInfo["cropW"] != null && cropInfo["cropH"] != null)
+                if (!imageToProcess.RawFormat.Equals(System.Drawing.Imaging.ImageFormat.Gif))
                 {
-                    // prevent OutOfMemoryException by making sure coords are in bounds
-                    int cropx = int.Parse(cropInfo["cropX"]);
-                    int cropy = int.Parse(cropInfo["cropY"]);
-                    int cropw = int.Parse(cropInfo["cropW"]);
-                    int croph = int.Parse(cropInfo["cropH"]);
-                    if (cropy + croph > imageToProcess.Height) croph = imageToProcess.Height - cropy;
-                    if (cropx + cropw > imageToProcess.Width) cropw = imageToProcess.Width - cropx;
-                    Rectangle cropArea = new Rectangle(cropx, cropy, cropw, croph);
-                    imageToProcess = cropImage(imageToProcess, cropArea);
-                }
+                    // determine cropArea using supplied params
+                    if (!string.IsNullOrEmpty(cropInfo["cropX"]) && !string.IsNullOrEmpty(cropInfo["cropY"]) &&
+                        !string.IsNullOrEmpty(cropInfo["cropW"]) && !string.IsNullOrEmpty(cropInfo["cropH"]))
+                    {
+                        // prevent OutOfMemoryException by making sure coords are in bounds
+                        int cropx = int.Parse(cropInfo["cropX"]);
+                        int cropy = int.Parse(cropInfo["cropY"]);
+                        int cropw = int.Parse(cropInfo["cropW"]);
+                        int croph = int.Parse(cropInfo["cropH"]);
+                        if (cropy + croph > imageToProcess.Height) croph = imageToProcess.Height - cropy;
+                        if (cropx + cropw > imageToProcess.Width) cropw = imageToProcess.Width - cropx;
+                        Rectangle cropArea = new Rectangle(cropx, cropy, cropw, croph);
+                        imageToProcess = cropImage(imageToProcess, cropArea);
+                    }
 
-                // flipX if param is found
-                if(cropInfo["flipX"] != null && cropInfo["flipX"].Equals("1"))
-                    imageToProcess.RotateFlip(RotateFlipType.RotateNoneFlipX);
+                    // flipX if param is found
+                    if (!string.IsNullOrEmpty(cropInfo["flipX"]) && cropInfo["flipX"].Equals("1"))
+                        imageToProcess.RotateFlip(RotateFlipType.RotateNoneFlipX);
+                }
+                else
+                {
+                    FrameDimension dimension = new FrameDimension(imageToProcess.FrameDimensionsList[0]);
+                    int frameCount = imageToProcess.GetFrameCount(dimension);
+                    for (int i = 0; i < frameCount; i++ )
+                    {
+                        Image img = Image.FromFile(@"C:\somefile.gif");
+                        img.SelectActiveFrame(dimension, i);
+                        img.RotateFlip(RotateFlipType.RotateNoneFlipX);
+                    }
+
+                }
 
                 // finalize by storing state name for inheritence and saving processed/cropped image
                 trimmedPrevStateName = trimmedCurrentStateName;
                 _previewable.Add(imageToProcess);
             }
+
             // all done, set zoom level to supplied sizeMultiplier
-            if (defaultInfo["sizeMultiplier"] != null)
+            if (!string.IsNullOrEmpty(defaultInfo["sizeMultiplier"]))
                 _zoomLevel = int.Parse(defaultInfo["sizeMultiplier"]);
 
             // select STATE according to TREE selection
