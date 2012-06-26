@@ -29,3 +29,17 @@ C:\Users\avian\Documents\Visual Studio 2010\Projects\SpriteEditor\Sprites\obj\x8
 C:\Users\avian\Documents\Visual Studio 2010\Projects\SpriteEditor\Sprites\obj\x86\Debug\SpriteEditor.frmWizard.resources
 C:\Users\avian\Documents\Visual Studio 2010\Projects\SpriteEditor\Sprites\obj\x86\Debug\SpriteEditor.Properties.Resources.resources
 C:\Users\avian\Documents\Visual Studio 2010\Projects\SpriteEditor\Sprites\obj\x86\Debug\SpriteEditor.frmAbout.resources
+C:\Users\E024320\Documents\Visual Studio 2010\Projects\SpriteEditor\Sprites\bin\Debug\SpriteEditor.exe.config
+C:\Users\E024320\Documents\Visual Studio 2010\Projects\SpriteEditor\Sprites\obj\x86\Debug\SpriteEditor.exe
+C:\Users\E024320\Documents\Visual Studio 2010\Projects\SpriteEditor\Sprites\obj\x86\Debug\SpriteEditor.pdb
+C:\Users\E024320\Documents\Visual Studio 2010\Projects\SpriteEditor\Sprites\bin\Debug\SpriteEditor.exe
+C:\Users\E024320\Documents\Visual Studio 2010\Projects\SpriteEditor\Sprites\bin\Debug\SpriteEditor.pdb
+C:\Users\E024320\Documents\Visual Studio 2010\Projects\SpriteEditor\Sprites\obj\x86\Debug\ResolveAssemblyReference.cache
+C:\Users\E024320\Documents\Visual Studio 2010\Projects\SpriteEditor\Sprites\obj\x86\Debug\SpriteEditor.frmAbout.resources
+C:\Users\E024320\Documents\Visual Studio 2010\Projects\SpriteEditor\Sprites\obj\x86\Debug\SpriteEditor.frmPreview.resources
+C:\Users\E024320\Documents\Visual Studio 2010\Projects\SpriteEditor\Sprites\obj\x86\Debug\SpriteEditor.frmWizard.resources
+C:\Users\E024320\Documents\Visual Studio 2010\Projects\SpriteEditor\Sprites\obj\x86\Debug\SpriteEditor.Properties.Resources.resources
+C:\Users\E024320\Documents\Visual Studio 2010\Projects\SpriteEditor\Sprites\obj\x86\Debug\GenerateResource.read.1.tlog
+C:\Users\E024320\Documents\Visual Studio 2010\Projects\SpriteEditor\Sprites\obj\x86\Debug\GenerateResource.write.1.tlog
+C:\Users\E024320\Documents\Visual Studio 2010\Projects\SpriteEditor\Sprites\bin\Debug\SpriteEditor.XML
+C:\Users\E024320\Documents\Visual Studio 2010\Projects\SpriteEditor\Sprites\obj\x86\Debug\SpriteEditor.frmMain.resources

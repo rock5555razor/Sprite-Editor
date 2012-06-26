@@ -74,6 +74,13 @@ namespace SpriteEditor.Properties {
             }
         }
         
+        public static System.Drawing.Bitmap check {
+            get {
+                object obj = ResourceManager.GetObject("check", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
         public static System.Drawing.Bitmap color {
             get {
                 object obj = ResourceManager.GetObject("color", resourceCulture);
@@ -91,6 +98,13 @@ namespace SpriteEditor.Properties {
         public static System.Drawing.Bitmap error {
             get {
                 object obj = ResourceManager.GetObject("error", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        public static System.Drawing.Bitmap errorList {
+            get {
+                object obj = ResourceManager.GetObject("errorList", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
@@ -130,6 +144,13 @@ namespace SpriteEditor.Properties {
             }
         }
         
+        public static System.Drawing.Bitmap hide {
+            get {
+                object obj = ResourceManager.GetObject("hide", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
         public static System.Drawing.Bitmap NewDocuments_32x32 {
             get {
                 object obj = ResourceManager.GetObject("NewDocuments_32x32", resourceCulture);
@@ -147,6 +168,13 @@ namespace SpriteEditor.Properties {
         public static System.Drawing.Bitmap plus {
             get {
                 object obj = ResourceManager.GetObject("plus", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        public static System.Drawing.Bitmap refresh {
+            get {
+                object obj = ResourceManager.GetObject("refresh", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
@@ -175,6 +203,13 @@ namespace SpriteEditor.Properties {
         public static System.Drawing.Bitmap spriteeditor {
             get {
                 object obj = ResourceManager.GetObject("spriteeditor", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        public static System.Drawing.Bitmap validate {
+            get {
+                object obj = ResourceManager.GetObject("validate", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

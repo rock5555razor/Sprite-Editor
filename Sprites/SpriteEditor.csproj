@@ -23,6 +23,8 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <DocumentationFile>bin\Debug\SpriteEditor.XML</DocumentationFile>
+    <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
     <PlatformTarget>x86</PlatformTarget>
@@ -32,6 +34,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
   </PropertyGroup>
   <PropertyGroup>
     <ApplicationIcon>Resources\sprite00193.ico</ApplicationIcon>
@@ -137,6 +140,11 @@
     <None Include="Resources\2392_ZoomIn_48x48.png" />
     <None Include="Resources\Rename.png" />
     <None Include="Resources\base_text.png" />
+    <None Include="Resources\109_AllAnnotations_Error_32x32_72.png" />
+    <None Include="Resources\109_AllAnnotations_Default_32x32_72.png" />
+    <None Include="Resources\112_RefreshArrow_Blue_24x24_72.png" />
+    <None Include="Resources\112_Minus_Blue_24x24_72.png" />
+    <None Include="Resources\base_checkmark_32.png" />
     <Content Include="Resources\sprite00193.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

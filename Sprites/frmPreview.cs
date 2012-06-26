@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Drawing;
-using System.Drawing.Imaging;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
+
 
 namespace SpriteEditor
 {
@@ -30,6 +29,7 @@ namespace SpriteEditor
             _imageLocations = new List<string>(imageLocations);
             _previewable = new List<Image>();
             _offs = new Dictionary<string, string>();
+            string curImageLoc = imageLocations[0];
 
             // list of possible state parameters
             string[] keys = {
@@ -53,18 +53,26 @@ namespace SpriteEditor
                         defaultInfo[param.Text] = param.Nodes[0].Text;
             }
 
-            string trimmedPrevStateName = "";
+            string trimmedPrevStateName = string.Empty;
             
             // loop through each state Node in the tree and process
             foreach (TreeNode n in tree.Nodes[0].Nodes)
             {
+                if (images.Count == 0)
+                {
+                    MessageBox.Show("No images loaded! Cannot preview any sprite states.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    this.DialogResult = DialogResult.Abort;
+                    return;
+                }
                 Image imageToProcess = images[0];
                 // ignore META_DATA and populate combobox
-                if (n.Text.EndsWith("META_DATA")) continue;
-                if (cmbStateToPreview.ComboBox != null) cmbStateToPreview.ComboBox.Items.Add(n.Text);
+                if (n.Text.EndsWith("META_DATA"))
+                    continue;
+                if (cmbStateToPreview.ComboBox != null)
+                    cmbStateToPreview.ComboBox.Items.Add(n.Text);
 
                 // should this state inherit from the previous state?
-                string trimmedCurrentStateName = _stateName.Replace(n.Text, "").TrimEnd('_');
+                string trimmedCurrentStateName = _stateName.Replace(n.Text, string.Empty).TrimEnd('_');
                 if (!trimmedCurrentStateName.Equals(trimmedPrevStateName))
                     cropInfo = new Dictionary<string, string>(defaultInfo);
 
@@ -80,9 +88,13 @@ namespace SpriteEditor
                 foreach (string s in _imageLocations)
                 {
                     if (s.Contains(cropInfo["uri"]))
+                    {
                         imageToProcess = images[_imageLocations.IndexOf(s)];
+                        curImageLoc = imageLocations[_imageLocations.IndexOf(s)];
+                    }
                 }
 
+                //calculate offset X and Y values
                 int left = previewBox.Left + Convert.ToInt32(cropInfo["offsX"]);
                 int top = previewBox.Top + Convert.ToInt32(cropInfo["offsY"]);
                 _offs.Add(n.Text,String.Concat(left, ",", top));
@@ -108,18 +120,38 @@ namespace SpriteEditor
                     if (!string.IsNullOrEmpty(cropInfo["flipX"]) && cropInfo["flipX"].Equals("1"))
                         imageToProcess.RotateFlip(RotateFlipType.RotateNoneFlipX);
                 }
-                else
-                {
-                    FrameDimension dimension = new FrameDimension(imageToProcess.FrameDimensionsList[0]);
-                    int frameCount = imageToProcess.GetFrameCount(dimension);
-                    for (int i = 0; i < frameCount; i++ )
-                    {
-                        Image img = Image.FromFile(@"C:\somefile.gif");
-                        img.SelectActiveFrame(dimension, i);
-                        img.RotateFlip(RotateFlipType.RotateNoneFlipX);
-                    }
-
-                }
+                //}
+                //else
+                //{
+                //    // special case - flipX on animated gif without losing data
+                //    if (!string.IsNullOrEmpty(cropInfo["flipX"]) && cropInfo["flipX"].Equals("1"))
+                //    {
+                //        // decode GIF and store frames
+                //        List<Image> frameList = new List<Image>();
+                //        //gifDecoder.Read(curImageLoc);
+                //        //for (int i = 0, count = gifDecoder.GetFrameCount(); i < count; i++)
+                //        //{
+                //        //    Image frame = gifDecoder.GetFrame(i); // frame i
+                //        //    frame.RotateFlip(RotateFlipType.RotateNoneFlipX);
+                //        //    frameList.Add(frame);
+                //        //}
+                //        //delay = gifDecoder.GetDelay(0);
+                //
+                //        //// encode GIF from frames
+                //        //AnimatedGifEncoder enc = new AnimatedGifEncoder();
+                //        //enc.SetQuality(0);
+                //        //enc.Start(tempfile);
+                //        //enc.SetDelay(delay);
+                //        ////enc.SetTransparent(Color.Black);
+                //        //enc.SetRepeat(0); // -1: no repeat, 0: always repeat
+                //        //for (int i = 0, count = frameList.Count; i < count; i++)
+                //        //{
+                //        //    enc.AddFrame(frameList[i]);
+                //        //}
+                //        //enc.Finish();
+                //        //imageToProcess = Image.FromFile(tempfile);
+                //    }
+                //}
 
                 // finalize by storing state name for inheritence and saving processed/cropped image
                 trimmedPrevStateName = trimmedCurrentStateName;
@@ -135,11 +167,11 @@ namespace SpriteEditor
             {
                 if (tree.SelectedNode.Tag.Equals("State"))
                     cmbStateToPreview.SelectedItem = tree.SelectedNode.Text;
-                if (tree.SelectedNode.Tag.Equals("Parameter"))
+                else if (tree.SelectedNode.Tag.Equals("Parameter"))
                     cmbStateToPreview.SelectedItem = tree.SelectedNode.Parent.Text;
-                if (tree.SelectedNode.Tag.Equals("Value"))
+                else if (tree.SelectedNode.Tag.Equals("Value"))
                     cmbStateToPreview.SelectedItem = tree.SelectedNode.Parent.Parent.Text;
-                if (tree.SelectedNode.Tag.Equals("File") || tree.SelectedNode.Tag.Equals("Index"))
+                else
                     cmbStateToPreview.SelectedItem = "SPRITE_STATE_DEFAULT";
             }
             else
@@ -187,6 +219,11 @@ namespace SpriteEditor
                 _zoomLevel--;
             previewBox.Width = previewBox.Image.Width * _zoomLevel;
             previewBox.Height = previewBox.Image.Height * _zoomLevel;
+        }
+
+        private void frmPreview_FormClosed(object sender, FormClosedEventArgs e)
+        {
+
         }
     }
 }

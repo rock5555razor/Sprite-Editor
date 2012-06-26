@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
+using System.Diagnostics;
 
 namespace SpriteEditor
 {
@@ -10,33 +11,58 @@ namespace SpriteEditor
         public List<string> _actions;
         public List<string> _flags;
         public List<string> _states;
+        public List<CheckBox> _checkBoxes;
 
         public frmWizard()
         {
             InitializeComponent();
         }
 
-        private void frmProperties_Load(object sender, EventArgs e)
+        /// <summary>
+        /// Main Form > File > New selected. Event handler that initializes fields to send back.
+        /// </summary>
+        /// <param name="sender">Object that raised the event</param>
+        /// <param name="e">Event arguments.</param>
+        private void frmWizard_Load(object sender, EventArgs e)
         {
             _spriteInfo = new Dictionary<string,string>();
             _actions = new List<string>();
             _flags = new List<string>();
             _states = new List<string>();
+            _checkBoxes = new List<CheckBox>();
+
+            foreach (Control c in this.Controls)
+            {
+                if (c is CheckBox)
+                {
+                    _checkBoxes.Add((CheckBox)c);
+                }
+                Debug.WriteLine(_checkBoxes.Count);
+            } 
         }
 
+        /// <summary>
+        /// OK button event handler. Bundles checkbox results to send back to main form.
+        /// </summary>
+        /// <param name="sender">Object that raised the event</param>
+        /// <param name="e">Event arguments.</param>
         private void btnOK_Click(object sender, EventArgs e)
         {
             // validate and process INFO
-            if (!infoName.Text.Equals(""))
+            if (!infoName.Text.Equals(string.Empty))
                 _spriteInfo.Add("name", infoName.Text);
-            else { MessageBox.Show("You must enter a sprite name!"); return; }
-            if (!infoVersion.Text.Equals(""))
+            else
+            {
+                MessageBox.Show("You must enter a sprite name!");
+                return;
+            }
+            if (!infoVersion.Text.Equals(string.Empty))
                 _spriteInfo.Add("version", infoVersion.Value.ToString());
-            if (!infoAuthor.Text.Equals(""))
+            if (!infoAuthor.Text.Equals(string.Empty))
                 _spriteInfo.Add("author", infoAuthor.Text);
-            if (!infoDescription.Text.Equals(""))
+            if (!infoDescription.Text.Equals(string.Empty))
                 _spriteInfo.Add("description", infoDescription.Text);
-            if (!infoURL.Text.Equals(""))
+            if (!infoURL.Text.Equals(string.Empty))
                 _spriteInfo.Add("url", infoURL.Text);
 
             // validate and process ACTIONS
@@ -92,9 +118,18 @@ namespace SpriteEditor
                 _flags.Add("doFadeOut");
 
             // validate and parse STATES
-            if (stateStand.Checked) { _states.Add("SPRITE_STATE_STAND_LEFT"); _states.Add("SPRITE_STATE_STAND_RIGHT"); }
+            if (stateStand.Checked)
+            {
+                _states.Add("SPRITE_STATE_STAND_LEFT");
+                _states.Add("SPRITE_STATE_STAND_RIGHT");
+            }
 
             DialogResult = DialogResult.OK;
+        }
+
+        private void buttonWalker_Click(object sender, EventArgs e)
+        {
+
         }
     }
 }
