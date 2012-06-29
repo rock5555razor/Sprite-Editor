@@ -43,3 +43,5 @@ C:\Users\E024320\Documents\Visual Studio 2010\Projects\SpriteEditor\Sprites\obj\
 C:\Users\E024320\Documents\Visual Studio 2010\Projects\SpriteEditor\Sprites\obj\x86\Debug\GenerateResource.write.1.tlog
 C:\Users\E024320\Documents\Visual Studio 2010\Projects\SpriteEditor\Sprites\bin\Debug\SpriteEditor.XML
 C:\Users\E024320\Documents\Visual Studio 2010\Projects\SpriteEditor\Sprites\obj\x86\Debug\SpriteEditor.frmMain.resources
+C:\Users\E024320\Documents\Visual Studio 2010\Projects\SpriteEditor\Sprites\bin\Debug\Gif.Components.dll
+C:\Users\E024320\Documents\Visual Studio 2010\Projects\SpriteEditor\Sprites\bin\Debug\Gif.Components.pdb

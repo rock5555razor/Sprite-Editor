@@ -40,6 +40,9 @@
     <ApplicationIcon>Resources\sprite00193.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Gif.Components">
+      <HintPath>..\..\..\..\..\Downloads\NGif_src2\Altered_Gif2\Components\bin\Debug\Gif.Components.dll</HintPath>
+    </Reference>
     <Reference Include="Newtonsoft.Json, Version=4.5.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\..\..\Desktop\temp\Json45r5\Bin\Portable\Newtonsoft.Json.dll</HintPath>
@@ -76,7 +79,6 @@
     <Compile Include="frmWizard.Designer.cs">
       <DependentUpon>frmWizard.cs</DependentUpon>
     </Compile>
-    <Compile Include="Sprite.cs" />
     <Compile Include="frmMain.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -145,6 +147,9 @@
     <None Include="Resources\112_RefreshArrow_Blue_24x24_72.png" />
     <None Include="Resources\112_Minus_Blue_24x24_72.png" />
     <None Include="Resources\base_checkmark_32.png" />
+    <None Include="Resources\109_AllAnnotations_Help_24x24_72.png" />
+    <None Include="Resources\109_AllAnnotations_Default_24x24_72.png" />
+    <None Include="Resources\109_AllAnnotations_Error_24x24_72.png" />
     <Content Include="Resources\sprite00193.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

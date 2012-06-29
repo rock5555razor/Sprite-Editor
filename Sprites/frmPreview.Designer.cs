@@ -94,7 +94,7 @@
             // zoomInButton
             // 
             this.zoomInButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.zoomInButton.Image = global::SpriteEditor.Properties.Resources._2392_ZoomIn_48x48;
+            this.zoomInButton.Image = global::SpriteEditor.Properties.Resources.ZoomIn;
             this.zoomInButton.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.zoomInButton.Name = "zoomInButton";
             this.zoomInButton.Size = new System.Drawing.Size(23, 22);
@@ -104,7 +104,7 @@
             // zoomOutButton
             // 
             this.zoomOutButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.zoomOutButton.Image = global::SpriteEditor.Properties.Resources._2391_ZoomOut;
+            this.zoomOutButton.Image = global::SpriteEditor.Properties.Resources.ZoomOut;
             this.zoomOutButton.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.zoomOutButton.Name = "zoomOutButton";
             this.zoomOutButton.Size = new System.Drawing.Size(23, 22);
@@ -132,7 +132,6 @@
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "frmPreview";
             this.Text = "Sprite Preview";
-            this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.frmPreview_FormClosed);
             this.toolStrip1.ResumeLayout(false);
             this.toolStrip1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.previewBox)).EndInit();

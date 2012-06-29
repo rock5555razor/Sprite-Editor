@@ -13,6 +13,9 @@ using Newtonsoft.Json.Linq;
 
 namespace SpriteEditor
 {
+    /// <summary>
+    /// 
+    /// </summary>
     public partial class frmMain : Form
     {
         private static readonly Regex _stateNumberRegex = new Regex(@"\d+$");
@@ -36,7 +39,8 @@ namespace SpriteEditor
                                                         "cropX", "cropY", "cropW", "cropH",
                                                         "offsX", "offsY", "isChain", "usePrevious", "autoClose",
                                                         "transparent", "walkMultiplier",
-                                                        "actions", "flags"
+                                                        "actions", "flags", "version",
+                                                        "credits", "spawn", "fixtures"
                                                     };
 
         private readonly string[] _possibleStates = {
@@ -50,29 +54,51 @@ namespace SpriteEditor
                                                     };
 
         /// <summary>
-        /// Enum that lists valid TreeNode.Tag types.
+        /// Enum that lists valid TreeNode.Tag types. Used to display correct Context Menus and for error checking.
         /// </summary>
         public enum TreeNodeTag
         {
+            /// <summary>
+            /// Indicates an error has occurred.
+            /// </summary>
             None,
+
+            /// <summary>
+            /// Node is a Value.
+            /// </summary>
             Value,
+
+            /// <summary>
+            /// Node is a Parameter
+            /// </summary>
             Parameter,
+
+            /// <summary>
+            /// Node is an index and contains multiple entries.
+            /// </summary>
             Index,
+
+            /// <summary>
+            /// Node is a SPRITE_STATE
+            /// </summary>
             State,
+
+            /// <summary>
+            /// Node is the root node / File node.
+            /// </summary>
             File
         };
 
         private List<ToolStripMenuItem> _dependencies; // container for View > Sprite Dependencies items (spi files, images, etc)
         private List<string> _imageLocations; // container that holds filelocations of current spr file associated images
         private List<Image> _images; // container that holds all Images for current spr file -> indices consistent with _imageLocations
-        private Image _imageOriginal; // store original image for usage with Zoom functionality
         private string _request = string.Empty; // used for user input wih pictureBox
         private string _workingFile = string.Empty; // store current working file location for quick saving via File > Save
-        private bool draw = false; // user is using Quick Crop functionality
-        private int quickX = 1; // X val for Quick Crop functionality
-        private int quickY = 1; // Y val for Quick Crop functionality
-        private int quickW = 1; // Width val for Quick Crop functionality
-        private int quickH = 1; // Height val for Quick Crop functionality
+        private bool _draw; // user is using Quick Crop functionality
+        private int _quickX = 1; // X val for Quick Crop functionality
+        private int _quickY = 1; // Y val for Quick Crop functionality
+        private int _quickW = 1; // Width val for Quick Crop functionality
+        private int _quickH = 1; // Height val for Quick Crop functionality
 
         /// <summary>
         /// Initializes a new instance of the FormMain class.
@@ -89,10 +115,6 @@ namespace SpriteEditor
         /// <param name="e">Event arguments.</param>
         private void frmMain_Load(object sender, EventArgs e)
         {
-            Debug.WriteLine(Path.GetDirectoryName(Application.ExecutablePath));
-            Debug.WriteLine(Path.GetDirectoryName(Application.ExecutablePath).ToString() + "\\temp.gif");
-
-
             // instantiate form vars
             _images = new List<Image>();
             _imageLocations = new List<string>();
@@ -101,15 +123,15 @@ namespace SpriteEditor
             // set up picturebox
             pictureBox.Width = pictureBox.Image.Width;
             pictureBox.Height = pictureBox.Image.Height;
-            _imageOriginal = pictureBox.Image;
             populateRecentFiles();
 
             // use remembered window locations
             Width = Properties.Settings.Default.FormWidth > 0 ? Properties.Settings.Default.FormWidth : 675;
             Height = Properties.Settings.Default.FormHeight > 0 ? Properties.Settings.Default.FormHeight : 375;
-            splitContainer1.SplitterDistance = Properties.Settings.Default.SplitterDistance > 0 ? Properties.Settings.Default.SplitterDistance : 460;
             Top = Properties.Settings.Default.SplitterDistance > -5 ? Properties.Settings.Default.FormTop : 20;
             Left = Properties.Settings.Default.SplitterDistance > -5 ? Properties.Settings.Default.FormLeft : 20;
+            splitContainer1.SplitterDistance = Properties.Settings.Default.SplitterDistance > 0 ? Properties.Settings.Default.SplitterDistance : 460;
+            toolBar.Visible = Properties.Settings.Default.toolBarVisibility;
 
             // populate menus
             foreach (ToolStripMenuItem addThis in _possibleParams.Select(s => new ToolStripMenuItem(s, null, treeAddParameter_Click)))
@@ -146,8 +168,10 @@ namespace SpriteEditor
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
-            treeView.SelectedNode.Nodes.Add(getNewNode(paramToAdd.Text, TreeNodeTag.Value));
+            treeView.SelectedNode.Nodes.Add(newTreeNode(paramToAdd.Text, TreeNodeTag.Value));
             treeView.SelectedNode.Expand();
+            sortTree();
+            validateTree();
         }
 
         /// <summary>
@@ -166,8 +190,10 @@ namespace SpriteEditor
                 return;
             }
 
-            treeView.SelectedNode.Nodes.Add(getNewNode(paramToAdd.Text, TreeNodeTag.Parameter));
+            treeView.SelectedNode.Nodes.Add(newTreeNode(paramToAdd.Text, TreeNodeTag.Parameter));
             treeView.SelectedNode.Expand();
+            sortTree();
+            validateTree();
         }
 
         /// <summary>
@@ -175,6 +201,7 @@ namespace SpriteEditor
         /// </summary>
         /// <param name="sender">Object that raised the event</param>
         /// <param name="e">Event arguments.</param>
+        /// <exception cref="FileNotFoundException">The specified file was not found.</exception>
         private void fileLoadMenu_Click(object sender, EventArgs e)
         {
             // confirmUnsavedChanges with user that unsaved changes will be lsot
@@ -211,12 +238,17 @@ namespace SpriteEditor
         /// <summary>
         /// Loads a JSON formatted *.spr into the program for usage.
         /// </summary>
+        /// <remarks>Will clear controls so call confirmUnsavedChanges() before using.</remarks>
         /// <param name="fileLocation">Location of *.spr file to load.</param>
+        /// <exception cref="JsonException">Input string is blank, malformatted, or invalid.</exception>
+        /// <exception cref="FileNotFoundException">Specified file was not found.</exception>
         private void loadSprite(string fileLocation)
         {
             try
             {
-                string jsonString = string.Empty;
+                string jsonString;
+                string fileName = Path.GetFileName(fileLocation);
+                string fileDir = Path.GetDirectoryName(fileLocation);
 
                 //read file into string and close. if null or empty, abort.
                 using (StreamReader myFile = new StreamReader(fileLocation))
@@ -228,188 +260,61 @@ namespace SpriteEditor
                 jsonString = prettifyJSON(jsonString);
                 treeView.Nodes.Clear();
 
-                // deserialize jsonString into Sprite instance and add tree root
-                Sprite sprizite = JsonConvert.DeserializeObject<Sprite>(jsonString);
-                sprizite.fileName = fileLocation;
-                sprizite.safeFileName = Path.GetFileName(fileLocation);
-                treeView.Nodes.Add(getNewNode(sprizite.safeFileName, TreeNodeTag.File));
+                // add File tree root node
+                treeView.Nodes.Add(newTreeNode(Path.GetFileName(fileLocation), TreeNodeTag.File));
+                TreeNode rootNode = treeView.Nodes[0];
 
-                // get list of states and iterate over states
-                List<string> validatedStateList = getStatesFromJSONString(jsonString);
-                int stateNodeIndex = 0;
-                foreach (string state in validatedStateList)
+                // get state list and interate
+                JObject root = JObject.Parse(jsonString);
+                IList<JToken> states = root.Children().ToList();
+                JToken stateJToken = states.First();
+                while (stateJToken != null)
                 {
-                    // add SPRITE_* nodes
-                    treeView.Nodes[0].Nodes.Add(getNewNode(state, TreeNodeTag.State));
+                    // add state node
+                    rootNode.Nodes.Add(newTreeNode(((JProperty)stateJToken).Name, TreeNodeTag.State));
+                    TreeNode stateNode = rootNode.Nodes[((JProperty)stateJToken).Name];
 
-                    // Special Case: Preloaded STATES ( META and DEFAULT )
-                    if (state.Equals("SPRITE_META_DATA") || state.Equals("SPRITE_STATE_DEFAULT"))
+                    // iterate current state's properties and add to tree
+                    foreach (JProperty j in ((JProperty)stateJToken).Value.Children())
                     {
-                        // list the properties to populate
-                        List<string> propList = sprizite.getNonNullProperties(state.Equals("SPRITE_META_DATA") ? "meta" : "default", sprizite);
+                        // add param node
+                        stateNode.Nodes.Add(newTreeNode(j.Name, TreeNodeTag.Parameter));
+                        TreeNode paramOrIndexNode = stateNode.Nodes[j.Name];
 
-                        // add parameterName nodes for each state
-                        foreach (string vs in propList)
+                        // if current param is index, parse and add to tree
+                        if (j.Value.ToString().Contains('[') || j.Value.ToString().Contains(']'))
                         {
-                            if (vs.Equals("fixtures") || vs.Equals("credits") || vs.Equals("spawn"))
-                                treeView.Nodes[0].Nodes[stateNodeIndex].Nodes.Add(getNewNode(vs, TreeNodeTag.Index));
-                            else
-                                treeView.Nodes[0].Nodes[stateNodeIndex].Nodes.Add(getNewNode(vs, TreeNodeTag.Parameter));
-                        }
-
-                        // additional processing for subnodes in each root depending on if property is: value, array, or subarray
-                        int k = 0;
-                        foreach (TreeNode n in treeView.Nodes[0].Nodes[stateNodeIndex].Nodes)
-                        {
-                            string prop = n.Text;
-
-                            //process values
-                            string val = fetchParameter(sprizite, prop);
-
-                            // contains array or sub array - extra processing
-                            if (val.Equals("||ERROR||"))
+                            JArray jArr = (JArray)JsonConvert.DeserializeObject(j.Value.ToString());
+                            int i = 1;
+                            foreach (var item in jArr)
                             {
-                                // BEGIN process sub arrays (credits, fixtures, spawn)
-                                if (prop.Equals("credits"))
+                                // deep subarray detected! parse index nodes (credits, spawn, fixtures, etc)
+                                if (paramOrIndexNode.Text.Equals("credits") || paramOrIndexNode.Text.Equals("spawn") || paramOrIndexNode.Text.Equals("fixtures"))
                                 {
-                                    for (int z = 0; z < sprizite.SPRITE_META_DATA.credits.Count; z++)
+                                    // add index node
+                                    int indexNodeNumber = paramOrIndexNode.Nodes.Add(newTreeNode("[" + i + "]", TreeNodeTag.Index));
+                                
+                                    // and params and values to index node
+                                    foreach (var subitem in item)
                                     {
-                                        treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes.Add(getNewNode("[" + (z + 1) + "]", TreeNodeTag.Index));
-
-                                        if (!string.IsNullOrEmpty(sprizite.SPRITE_META_DATA.credits[z].author))
-                                        {
-                                            treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes.Add(getNewNode("author", TreeNodeTag.Parameter));
-                                            treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes[0].Nodes.Add(getNewNode(sprizite.SPRITE_META_DATA.credits[z].author, TreeNodeTag.Value));
-                                        }
-                                        if (!string.IsNullOrEmpty(sprizite.SPRITE_META_DATA.credits[z].description))
-                                        {
-                                            treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes.Add(getNewNode("description", TreeNodeTag.Parameter));
-                                            treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes[1].Nodes.Add(getNewNode(sprizite.SPRITE_META_DATA.credits[z].description, TreeNodeTag.Value));
-                                        }
-                                        if (!string.IsNullOrEmpty(sprizite.SPRITE_META_DATA.credits[z].url))
-                                        {
-                                            treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes.Add(getNewNode("url", TreeNodeTag.Parameter));
-                                            treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes[2].Nodes.Add(getNewNode(sprizite.SPRITE_META_DATA.credits[z].url, TreeNodeTag.Value));
-                                        }
+                                        int newNodeIndex = paramOrIndexNode.Nodes[indexNodeNumber].Nodes.Add(newTreeNode(((JProperty)subitem).Name, TreeNodeTag.Parameter));
+                                        paramOrIndexNode.Nodes[indexNodeNumber].Nodes[newNodeIndex].Nodes.Add(newTreeNode(((JProperty)subitem).Value.ToString(), TreeNodeTag.Value));
                                     }
-                                    k++;
-                                    continue;
                                 }
-                                if (prop.Equals("fixtures"))
+                                else // shallow subarray detected! parse (actions, flags, etc)
                                 {
-                                    for (int z = 0; z < sprizite.SPRITE_STATE_DEFAULT.fixtures.Count; z++)
-                                    {
-                                        treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes.Add(getNewNode("[" + (z + 1) + "]", TreeNodeTag.Index));
-
-                                        if (!string.IsNullOrEmpty(sprizite.SPRITE_STATE_DEFAULT.fixtures[z].x))
-                                        {
-                                            treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes.Add(getNewNode("x", TreeNodeTag.Parameter));
-                                            treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes[0].Nodes.Add(getNewNode(sprizite.SPRITE_STATE_DEFAULT.fixtures[z].x, TreeNodeTag.Value));
-                                        }
-                                        if (!string.IsNullOrEmpty(sprizite.SPRITE_STATE_DEFAULT.fixtures[z].y))
-                                        {
-                                            treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes.Add(getNewNode("y", TreeNodeTag.Parameter));
-                                            treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes[1].Nodes.Add(getNewNode(sprizite.SPRITE_STATE_DEFAULT.fixtures[z].y, TreeNodeTag.Value));
-                                        }
-                                        if (!string.IsNullOrEmpty(sprizite.SPRITE_STATE_DEFAULT.fixtures[z].w))
-                                        {
-                                            treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes.Add(getNewNode("w", TreeNodeTag.Parameter));
-                                            treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes[2].Nodes.Add(getNewNode(sprizite.SPRITE_STATE_DEFAULT.fixtures[z].w, TreeNodeTag.Value));
-                                        }
-                                        if (!string.IsNullOrEmpty(sprizite.SPRITE_STATE_DEFAULT.fixtures[z].h))
-                                        {
-                                            treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes.Add(getNewNode("h", TreeNodeTag.Parameter));
-                                            treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes[3].Nodes.Add(getNewNode(sprizite.SPRITE_STATE_DEFAULT.fixtures[z].h, TreeNodeTag.Value));
-                                        }
-                                    }
-                                    k++;
-                                    continue;
+                                    paramOrIndexNode.Nodes.Add(newTreeNode(item.ToString(), TreeNodeTag.Value));
                                 }
-                                if (prop.Equals("spawn"))
-                                {
-                                    for (int z = 0; z < sprizite.SPRITE_META_DATA.spawn.Count; z++)
-                                    {
-                                        treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes.Add(getNewNode("[" + (z + 1) + "]", TreeNodeTag.Index));
-
-                                        if (!string.IsNullOrEmpty(sprizite.SPRITE_META_DATA.spawn[z].uri))
-                                        {
-                                            treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes.Add(getNewNode("uri", TreeNodeTag.Parameter));
-                                            treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes[0].Nodes.Add(getNewNode(sprizite.SPRITE_META_DATA.spawn[z].uri, TreeNodeTag.Value));
-                                        }
-                                        if (!string.IsNullOrEmpty(sprizite.SPRITE_META_DATA.spawn[z].spawnX))
-                                        {
-                                            treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes.Add(getNewNode("spawnX", TreeNodeTag.Parameter));
-                                            treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes[1].Nodes.Add(getNewNode(sprizite.SPRITE_META_DATA.spawn[z].spawnX, TreeNodeTag.Value));
-                                        }
-                                        if (!string.IsNullOrEmpty(sprizite.SPRITE_META_DATA.spawn[z].spawnY))
-                                        {
-                                            treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes.Add(getNewNode("spawnY", TreeNodeTag.Parameter));
-                                            treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes[2].Nodes.Add(getNewNode(sprizite.SPRITE_META_DATA.spawn[z].spawnY, TreeNodeTag.Value));
-                                        }
-                                        if (!string.IsNullOrEmpty(sprizite.SPRITE_META_DATA.spawn[z].spawnExplode))
-                                        {
-                                            treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes.Add(getNewNode("spawnExplode", TreeNodeTag.Parameter));
-                                            treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes[z].Nodes[3].Nodes.Add(getNewNode(sprizite.SPRITE_META_DATA.spawn[z].spawnExplode, TreeNodeTag.Value));
-                                        }
-                                    }
-                                    k++;
-                                    continue;
-                                }
-
-                                // process arrays
-                                if (prop.Equals("flags") || prop.Equals("actions"))
-                                {
-                                    int arrayCount = 0;
-                                    if (prop.Equals("flags"))
-                                        arrayCount = sprizite.SPRITE_META_DATA.flags.Count;
-                                    else if (prop.Equals("actions"))
-                                        arrayCount = sprizite.SPRITE_META_DATA.actions.Count;
-
-                                    for (int z = 0; z < arrayCount; z++)
-                                    {
-                                        if (prop.Equals("flags"))
-                                            treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes.Add(getNewNode(sprizite.SPRITE_META_DATA.flags[z], TreeNodeTag.Parameter));
-                                        else if (prop.Equals("actions"))
-                                            treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes.Add(getNewNode(sprizite.SPRITE_META_DATA.actions[z], TreeNodeTag.Value));
-                                    }
-                                    k++;
-                                    continue;
-                                }
+                                i++;
                             }
-                            treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[k].Nodes.Add(getNewNode(val, TreeNodeTag.Value));
-                            k++;
                         }
-                        stateNodeIndex++;
-                        continue;
-                    } // end processing of META and DEFAULT
-
-                    // SPRITE_STATE_* detected - start processing using JTokens
-                    SpriteState addThis = new SpriteState(state);
-
-                    // Special Case: check if state is empty
-                    if (!JObject.Parse(jsonString)[state].Any())
-                    {
-                        stateNodeIndex++;
-                        continue;
+                        else // simple param/value combo detected -> add value to param
+                        {
+                            if (!string.IsNullOrEmpty(j.Value.ToString()))
+                                paramOrIndexNode.Nodes.Add(newTreeNode(j.Value.ToString(), TreeNodeTag.Value));
+                        }
                     }
-
-                    JToken iteratorToken = JObject.Parse(jsonString)[state].First();
-
-                    int j = 0;
-                    // check each token and parse
-                    while (iteratorToken != null)
-                    {
-                        string propName = ((JProperty)iteratorToken).Name;
-                        string propValue = ((JProperty)iteratorToken).Value.ToString();
-                        treeView.Nodes[0].Nodes[stateNodeIndex].Nodes.Add(getNewNode(propName, TreeNodeTag.Parameter));
-                        treeView.Nodes[0].Nodes[stateNodeIndex].Nodes[j].Nodes.Add(getNewNode(propValue, TreeNodeTag.Value));
-                        addThis.setParameter(propName, propValue);
-
-                        j++;
-                        iteratorToken = iteratorToken.Next;
-                    }
-                    sprizite.addNewState(addThis);
-                    stateNodeIndex++;
+                    stateJToken = stateJToken.Next;
                 }
 
                 // prepare controls by clearing them
@@ -424,116 +329,77 @@ namespace SpriteEditor
                 {
                     if (u.FirstNode == null) continue;
                     string imageLoc = u.FirstNode.Text;
-                    string fullImagePath = String.Concat(sprizite.fileName.Substring(0, sprizite.fileName.LastIndexOf("\\", StringComparison.Ordinal)), "\\", imageLoc);
+                    string fullImagePath = String.Concat(fileDir, "\\", imageLoc);
                     if (_imageLocations.Contains(fullImagePath))
                         continue;
 
                     // add *.spi files to associated files list
-                    if (fullImagePath.EndsWith("spi") || fullImagePath.EndsWith("spr") && !Path.GetFileName(fullImagePath).Equals(sprizite.safeFileName))
+                    if (fullImagePath.EndsWith("spi") || fullImagePath.EndsWith("spr") && !Path.GetFileName(fullImagePath).Equals(fileName))
                     {
-                        ToolStripMenuItem dynamicMenuItem = new ToolStripMenuItem(Path.GetFileName(fullImagePath));
-                        dynamicMenuItem.Image = Properties.Resources.favicon;
-                        dynamicMenuItem.Tag = fullImagePath;
+                        ToolStripMenuItem dynamicMenuItem = new ToolStripMenuItem(Path.GetFileName(fullImagePath))
+                                                                {
+                                                                    Image = Properties.Resources.favicon,
+                                                                    Tag = fullImagePath
+                                                                };
                         dynamicMenuItem.Click += dependencyMenuItem_Click;
                         _dependencies.Add(dynamicMenuItem);
-                        continue;
                     }
-                    if (File.Exists(fullImagePath))
-                        _images.Add(new Bitmap(fullImagePath));
-                    _imageLocations.Add(fullImagePath);
+                    else // image file detected
+                    {
+                        if (File.Exists(fullImagePath))
+                        {
+                            _images.Add(new Bitmap(fullImagePath));
+                            _imageLocations.Add(fullImagePath);
+                        }
+                        else
+                        {
+                            MessageBox.Show("Referenced image uri \"" + imageLoc + "\" was not found.\n\nMake sure the image is in the same folder (or subfolder) of the *.spr file itself.\n\nDetails:\n" + fullImagePath, "Error");
+                        }
+                    }
                 }
 
                 // display DEFAULT image in picturebox
                 if (_imageLocations.Any() && File.Exists(_imageLocations[0]))
                 {
                     pictureBox.Image = new Bitmap(_imageLocations[0]);
-                    pictureBox.Tag = sprizite.SPRITE_STATE_DEFAULT.uri;
+                    pictureBox.Tag = treeView.Nodes[0].Nodes["SPRITE_STATE_DEFAULT"].Nodes["uri"].Text;
                     pictureBox.Width = pictureBox.Image.Width;
                     pictureBox.Height = pictureBox.Image.Height;
-                    _imageOriginal = pictureBox.Image;
                 }
 
                 // all done populating controls - finalize
-                statusLabel.Text = sprizite.safeFileName + " was imported successfully.";
+                statusLabel.Text = fileName + " was imported successfully.";
                 treeView.Nodes[0].Expand();
-                addMRU(sprizite.fileName);
+                addMRU(fileLocation);
                 populateRecentFiles();
-                _workingFile = sprizite.fileName;
+                sortTree();
+                validateTree();
+                _workingFile = fileLocation;
             }
             catch (FileNotFoundException ex)
             {
                 MessageBox.Show("Unable to load sprite. File not found or error reading input file.\n\nDetails:\n" + ex.Message,
                     "File Read Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 statusLabel.Text = "Unable to load sprite. File not found?";
-                return;
             }
             catch (NullReferenceException ex)
             {
                 MessageBox.Show("Unable to load sprite. Is the input file blank, corrupt, or malformatted?\n\nDetails:\n" + ex.Message,
                     "Parse Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 statusLabel.Text = "Unable to load sprite. Is the file blank?";
-                return;
             }
             catch (JsonException ex)
             {
                 MessageBox.Show("Unable to load sprite. Is the input file blank, corrupt, or malformatted?\n\nDetails:\n" + ex.Message,
                     "Parse Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 statusLabel.Text = "Unable to load sprite. File is malformatted.";
-                return;
             }
             catch (Exception ex)
             {
                 MessageBox.Show("Unable to load sprite. Unknown error. Please send avian the *.spr file so he can fix this.\n\nDetails:\n" + ex.Message,
                     "Generic Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 statusLabel.Text = "Unable to load sprite. Unknown error.";
-                return;
             }
-        }
-
-        /// <summary>
-        /// Fetch property value from Sprite object for processing META_DATA and STATE_DEFAULT.
-        /// </summary>
-        /// <param name="sprizite">Sprite object to fetch params from.</param>
-        /// <param name="prop">Sprite property to fetch.</param>
-        /// <returns>Specified property value.</returns>
-        private static string fetchParameter(Sprite sprizite, string prop)
-        {
-            string val = "||ERROR||";
-            if (prop.Equals("version"))
-                val = sprizite.SPRITE_META_DATA.version;
-            if (prop.Equals("uri"))
-                val = sprizite.SPRITE_STATE_DEFAULT.uri;
-            if (prop.Equals("cropX"))
-                val = sprizite.SPRITE_STATE_DEFAULT.cropX;
-            if (prop.Equals("cropY"))
-                val = sprizite.SPRITE_STATE_DEFAULT.cropY;
-            if (prop.Equals("cropW"))
-                val = sprizite.SPRITE_STATE_DEFAULT.cropW;
-            if (prop.Equals("cropH"))
-                val = sprizite.SPRITE_STATE_DEFAULT.cropH;
-            if (prop.Equals("transparent"))
-                val = sprizite.SPRITE_STATE_DEFAULT.transparent;
-            if (prop.Equals("frameDelay"))
-                val = sprizite.SPRITE_STATE_DEFAULT.frameDelay;
-            if (prop.Equals("sizeMultiplier"))
-                val = sprizite.SPRITE_STATE_DEFAULT.sizeMultiplier;
-            if (prop.Equals("autoClose"))
-                val = sprizite.SPRITE_STATE_DEFAULT.autoClose;
-            if (prop.Equals("isChain"))
-                val = sprizite.SPRITE_STATE_DEFAULT.isChain;
-            if (prop.Equals("flipX"))
-                val = sprizite.SPRITE_STATE_DEFAULT.flipX;
-            if (prop.Equals("sizeDivider"))
-                val = sprizite.SPRITE_STATE_DEFAULT.sizeDivider;
-            if (prop.Equals("offsX"))
-                val = sprizite.SPRITE_STATE_DEFAULT.offsX;
-            if (prop.Equals("offsY"))
-                val = sprizite.SPRITE_STATE_DEFAULT.offsY;
-            if (prop.Equals("usePrevious"))
-                val = sprizite.SPRITE_STATE_DEFAULT.usePrevious;
-            if (prop.Equals("walkMultiplier"))
-                val = sprizite.SPRITE_STATE_DEFAULT.walkMultiplier;
-            return val;
         }
 
         /// <summary>
@@ -544,91 +410,6 @@ namespace SpriteEditor
         private void fileExitMenu_Click(object sender, EventArgs e)
         {
             Application.Exit();
-        }
-
-        /// <summary>
-        /// File > New menu event handler.
-        /// </summary>
-        /// <param name="sender">Object that raised the event</param>
-        /// <param name="e">Event arguments.</param>
-        private void fileNewMenu_Click(object sender, EventArgs e)
-        {
-            // confirmUnsavedChanges with user that unsaved changed will be lost
-            if (confirmUnsavedChanges() == DialogResult.Cancel) return;
-
-            // display sprite wizard, get values, process values
-            using (var form = new frmWizard())
-            {
-                DialogResult result2 = form.ShowDialog();
-                if (result2 == DialogResult.OK)
-                {
-                    // clear controls for new sprite
-                    treeView.Nodes.Clear();
-                    _images.Clear();
-                    _imageLocations.Clear();
-                    pictureBox.Image = Properties.Resources.favicon;
-                    pictureBox.Height = pictureBox.Image.Height;
-                    pictureBox.Width = pictureBox.Image.Width;
-
-                    // store values from Sprite Wizard
-                    Dictionary<string, string> sprInfo = form._spriteInfo;
-                    List<string> actions = form._actions;
-                    List<string> flags = form._flags;
-                    List<string> states = form._states;
-
-                    // add required nodes
-                    treeView.Nodes.Add(getNewNode(sprInfo["name"], TreeNodeTag.File));
-                    treeView.Nodes[0].Nodes.Add(getNewNode("SPRITE_META_DATA", TreeNodeTag.State));
-                    treeView.Nodes[0].Nodes.Add(getNewNode("SPRITE_STATE_DEFAULT", TreeNodeTag.State));
-
-                    // process frmWizard results and populate tree accordingly
-                    foreach (KeyValuePair<string, string> i in sprInfo)
-                    {
-                        switch (i.Key)
-                        {
-                            case "name":
-                                break;
-                            case "version":
-                                treeView.Nodes[0].Nodes["SPRITE_META_DATA"].Nodes.Add(getNewNode("version", TreeNodeTag.Parameter));
-                                treeView.Nodes[0].Nodes["SPRITE_META_DATA"].Nodes["version"].Nodes.Add(getNewNode(i.Value, TreeNodeTag.Value));
-                                break;
-                            case "author":
-                            case "description":
-                            case "url":
-                                if (treeView.Nodes[0].Nodes["SPRITE_META_DATA"].Nodes["credits"] == null)
-                                {
-                                    treeView.Nodes[0].Nodes["SPRITE_META_DATA"].Nodes.Add(getNewNode("credits", TreeNodeTag.Index));
-                                    treeView.Nodes[0].Nodes["SPRITE_META_DATA"].Nodes["credits"].Nodes.Add(getNewNode("[1]", TreeNodeTag.Index));
-                                }
-                                treeView.Nodes[0].Nodes["SPRITE_META_DATA"].Nodes["credits"].Nodes["[1]"].Nodes.Add(getNewNode(i.Key, TreeNodeTag.Value));
-                                treeView.Nodes[0].Nodes["SPRITE_META_DATA"].Nodes["credits"].Nodes["[1]"].Nodes[i.Key].Nodes.Add(getNewNode(i.Value, TreeNodeTag.Value));
-                                break;
-                        }
-                    }
-
-                    if (actions.Count != 0)
-                    {
-                        treeView.Nodes[0].Nodes["SPRITE_META_DATA"].Nodes.Add(getNewNode("actions", TreeNodeTag.Parameter));
-                        foreach (string a in actions)
-                            treeView.Nodes[0].Nodes["SPRITE_META_DATA"].Nodes["actions"].Nodes.Add(getNewNode(a, TreeNodeTag.Value));
-                    }
-
-                    if (flags.Count != 0)
-                    {
-                        treeView.Nodes[0].Nodes["SPRITE_META_DATA"].Nodes.Add(getNewNode("flags", TreeNodeTag.Parameter));
-                        foreach (string f in flags)
-                            treeView.Nodes[0].Nodes["SPRITE_META_DATA"].Nodes["flags"].Nodes.Add(getNewNode(f, TreeNodeTag.Value));
-                    }
-
-                    if (states.Count != 0)
-                    {
-                        foreach (string s in states)
-                            treeView.Nodes[0].Nodes.Add(getNewNode(s, TreeNodeTag.State));
-                    }
-                    sortTree();
-                    treeView.Nodes[0].Expand();
-                }
-            }
         }
 
         /// <summary>
@@ -657,13 +438,15 @@ namespace SpriteEditor
                 else
                 {
                     if (addHere.Tag.Equals(TreeNodeTag.Parameter) && addHere.Nodes.Count == 0)
-                        addHere.Nodes.Add(getNewNode(chosenColorHTML, TreeNodeTag.Value));
+                        addHere.Nodes.Add(newTreeNode(chosenColorHTML, TreeNodeTag.Value));
                     else
                     {
                         addHere.Nodes[0].Remove();
-                        addHere.Nodes.Add(getNewNode(chosenColorHTML, TreeNodeTag.Value));
+                        addHere.Nodes.Add(newTreeNode(chosenColorHTML, TreeNodeTag.Value));
                     }
                 }
+                sortTree();
+                validateTree();
                 _request = string.Empty;
                 statusLabel.Text = chosenColorHTML + " was selected.";
             }
@@ -683,15 +466,17 @@ namespace SpriteEditor
                 else
                 {
                     if (addHere.Tag.Equals(TreeNodeTag.Parameter) && addHere.Nodes.Count == 0)
-                        addHere.Nodes.Add(getNewNode(coords[0], TreeNodeTag.Value));
+                        addHere.Nodes.Add(newTreeNode(coords[0], TreeNodeTag.Value));
                     else
                     {
                         addHere.Nodes[0].Remove();
-                        addHere.Nodes.Add(getNewNode(coords[0], TreeNodeTag.Value));
+                        addHere.Nodes.Add(newTreeNode(coords[0], TreeNodeTag.Value));
                     }
                 }
                 statusLabel.Text = treeView.SelectedNode.FullPath + " set to " + coords[0];
                 _request = string.Empty;
+                sortTree();
+                validateTree();
             }
             else if (_request.Equals("grabY"))
             {
@@ -709,13 +494,15 @@ namespace SpriteEditor
                 else
                 {
                     if (addHere.Tag.Equals(TreeNodeTag.Parameter) && addHere.Nodes.Count == 0)
-                        addHere.Nodes.Add(getNewNode(coords[1], TreeNodeTag.Value));
+                        addHere.Nodes.Add(newTreeNode(coords[1], TreeNodeTag.Value));
                     else
                     {
                         addHere.Nodes[0].Remove();
-                        addHere.Nodes.Add(getNewNode(coords[1], TreeNodeTag.Value));
+                        addHere.Nodes.Add(newTreeNode(coords[1], TreeNodeTag.Value));
                     }
                 }
+                sortTree();
+                validateTree();
                 statusLabel.Text = treeView.SelectedNode.FullPath + " set to " + coords[0];
                 _request = string.Empty;
             }
@@ -728,25 +515,10 @@ namespace SpriteEditor
         /// <param name="e">Event arguments.</param>
         private void treeView_OnNodeMouseClick(object sender, TreeNodeMouseClickEventArgs e)
         {
-            //treeView.Font = new Font(treeView.Font, FontStyle.Bold);
             if (e.Button != MouseButtons.Right) return;
             Point p = new Point(e.X, e.Y);
             TreeNode node = treeView.GetNodeAt(p);
             Debug.WriteLine(node.Text + " is " + node.Tag);
-            
-            if (Convert.ToString(node.Tag).Equals(TreeNodeTag.Parameter) && node.Text.Equals("actions"))
-            {
-                treeActionsContextMenu.Show(treeView, p);
-                treeView.SelectedNode = node;
-                return;
-            }
-
-            if (Convert.ToString(node.Tag).Equals(TreeNodeTag.Parameter) && node.Text.Equals("flags"))
-            {
-                treeFlagsContextMenu.Show(treeView, p);
-                treeView.SelectedNode = node;
-                return;
-            }
 
             switch ((TreeNodeTag)node.Tag)
             {
@@ -757,6 +529,21 @@ namespace SpriteEditor
                     treeStateContextMenu.Show(treeView, p);
                     break;
                 case TreeNodeTag.Parameter:
+                    if (node.Text.Equals("actions"))
+                    {
+                        treeActionsContextMenu.Show(treeView, p);
+                        break;
+                    }
+                    if (node.Text.Equals("flags"))
+                    {
+                        treeFlagsContextMenu.Show(treeView, p);
+                        break;
+                    }
+                    if (node.Text.Equals("credits") || node.Text.Equals("spawn") || node.Text.Equals("fixtures"))
+                    {
+                        treeIndexContextMenu.Show(treeView, p);
+                        break;
+                    }
                     treeParamContextMenu.Show(treeView, p);
                     break;
                 case TreeNodeTag.Value:
@@ -873,7 +660,7 @@ namespace SpriteEditor
                     if (result == DialogResult.OK)
                     {
                         //read file to string then close
-                        string jsonString = string.Empty;
+                        string jsonString;
                         using (StreamReader myFile = new StreamReader(openFile.FileName))
                         {
                             jsonString = myFile.ReadToEnd();
@@ -892,28 +679,24 @@ namespace SpriteEditor
                 MessageBox.Show("Unable to load sprite. File not found or error reading input file.\n\nDetails:\n" + ex.Message,
                     "File Read Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 statusLabel.Text = "Unable to load sprite. File not found?";
-                return;
             }
             catch (NullReferenceException ex)
             {
                 MessageBox.Show("Unable to load sprite. Is the input file blank, corrupt, or malformatted?\n\nDetails:\n" + ex.Message,
                     "Parse Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 statusLabel.Text = "Unable to load sprite. Is the file blank?";
-                return;
             }
             catch (JsonException ex)
             {
                 MessageBox.Show("Unable to load sprite. Is the input file blank, corrupt, or malformatted?\n\nDetails:\n" + ex.Message,
                     "Parse Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 statusLabel.Text = "Unable to load sprite. File is malformatted.";
-                return;
             }
             catch (Exception ex)
             {
                 MessageBox.Show("Unable to load sprite. Unknown error. Please send avian the *.spr file so he can fix this.\n\nDetails:\n" + ex.Message,
                     "Generic Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 statusLabel.Text = "Unable to load sprite. Unknown error.";
-                return;
             }
         }
 
@@ -923,13 +706,12 @@ namespace SpriteEditor
         /// <param name="nameText">Name/Text of the node.</param>
         /// <param name="tag">Tag of node, must be File, Index, State, Parameter, Value</param>
         /// <returns>Properly initialized treeNode that is ready to add to tree.</returns>
-        public TreeNode getNewNode(string nameText, TreeNodeTag tag)
+        public TreeNode newTreeNode(string nameText, TreeNodeTag tag)
         {
             TreeNode node = new TreeNode(nameText)
                            {
                                Name = nameText,
-                               Tag = tag,
-                               NodeFont = treeView.Font
+                               Tag = tag
                            };
             return node;
         }
@@ -938,7 +720,8 @@ namespace SpriteEditor
         /// Helper that properly formats JSON files
         /// </summary>
         /// <param name="formatThis">Original JSON in string format</param>
-        /// <returns>Properly formatted JSON string</returns>
+        /// <exception cref="NotImplementedException"></exception>
+        /// <returns>Properly formatted JSON string or string.Empty if an error.</returns>
         public static string prettifyJSON(string formatThis)
         {
             try
@@ -962,28 +745,6 @@ namespace SpriteEditor
         }
 
         /// <summary>
-        /// Retrieve list of states appearing in a JSON formatted string.
-        /// </summary>
-        /// <param name="jsonString">Original JSON in string format</param>
-        /// <returns>List of state names</returns>
-        public static List<string> getStatesFromJSONString(string jsonString)
-        {
-            JObject root = JObject.Parse(jsonString);
-            IList<JToken> states = root.Children().ToList();
-
-            List<string> rootStates = new List<string>();
-
-            JToken jtoken = states.First();
-
-            while (jtoken != null)
-            {
-                rootStates.Add(((JProperty)jtoken).Name);
-                jtoken = jtoken.Next;
-            }
-            return rootStates;
-        }
-
-        /// <summary>
         /// File > Save As event handler
         /// </summary>
         /// <param name="sender">Object that raised the event</param>
@@ -992,9 +753,11 @@ namespace SpriteEditor
         {
             if (treeView.Nodes.Count == 0)
             {
-                statusLabel.Text = "Cannot save. Empty file!";
+                MessageBox.Show("Cannot save empty file.", "Save Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
+
             string defaultDir = Properties.Settings.Default.lastSavedDir;
             if (string.IsNullOrEmpty(defaultDir) || !Directory.Exists(defaultDir))
                 defaultDir = string.IsNullOrEmpty(getSpriteCollectionLocation()) ?
@@ -1019,6 +782,7 @@ namespace SpriteEditor
                     }
 
                     _workingFile = saveFileDialog1.FileName;
+                    treeView.Nodes[0].Text = Path.GetFileName(saveFileDialog1.FileName);
                     addMRU(saveFileDialog1.FileName);
                     populateRecentFiles();
                     Properties.Settings.Default.lastSavedDir = Path.GetDirectoryName(saveFileDialog1.FileName);
@@ -1031,7 +795,6 @@ namespace SpriteEditor
                 MessageBox.Show("Unable to save sprite. Unknown error. Please send avian the *.spr file so he can fix this.\n\nDetails:\n" + ex.Message,
                     "Generic Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 statusLabel.Text = "Unable to save sprite. Unknown error.";
-                return;
             }
         }
 
@@ -1168,17 +931,16 @@ namespace SpriteEditor
             // capture X/Y coords and display in statusLabel
             statusCoordsLabel.Text = "X: " + (e.X / zoomSlider.Value) + " Y: " + (e.Y / zoomSlider.Value);
 
-            // draw rect for Quick Crop
-            if (draw == true)
+            // _draw rect for Quick Crop
+            if (!_draw)
+                return;
+            pictureBox.Refresh();
+            _quickW =  e.X - _quickX;
+            _quickH = e.Y - _quickY;
+            using (Graphics g = pictureBox.CreateGraphics())
             {
-                pictureBox.Refresh();
-                quickW =  e.X - quickX;
-                quickH = e.Y - quickY;
-                using (Graphics g = pictureBox.CreateGraphics())
-                {
-                    Rectangle rect = new Rectangle(quickX, quickY, quickW, quickH);
-                    g.DrawRectangle(Pens.Black, rect);
-                }
+                Rectangle rect = new Rectangle(_quickX, _quickY, _quickW, _quickH);
+                g.DrawRectangle(Pens.Black, rect);
             }
         }
 
@@ -1217,7 +979,6 @@ namespace SpriteEditor
         /// <param name="e">Event arguments.</param>
         private void viewActualSizeMenuItem_Click(object sender, EventArgs e)
         {
-            pictureBox.Image = _imageOriginal;
             pictureBox.Width = pictureBox.Image.Width;
             pictureBox.Height = pictureBox.Image.Height;
             zoomSlider.Value = 1;
@@ -1233,8 +994,13 @@ namespace SpriteEditor
             ToolStripMenuItem mi = sender as ToolStripMenuItem;
             if (mi != null)
             {
+                if (!File.Exists(mi.Tag.ToString()))
+                {
+                    MessageBox.Show("File not found - Unable to load picture.\n\nMake sure the image is in the same folder as (or subfolder of) the *.spr file. \n\nDetails:\n" + mi.Tag,
+                        "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
                 pictureBox.Image = new Bitmap(mi.Tag.ToString());
-                _imageOriginal = pictureBox.Image;
                 zoomSlider.Value = 1;
                 pictureBox.Width = pictureBox.Image.Width;
                 pictureBox.Height = pictureBox.Image.Height;
@@ -1288,8 +1054,10 @@ namespace SpriteEditor
         {
             using (var form = new frmPreview(_images, _imageLocations, ref treeView))
             {
-                if(form.DialogResult != DialogResult.Abort)
+                if (form.DialogResult != DialogResult.Abort)
                     form.ShowDialog();
+                else
+                    statusLabel.Text = "An error occurred. Sprite Preview was unable to load.";
             }
         }
 
@@ -1322,7 +1090,7 @@ namespace SpriteEditor
         {
             try
             {
-                if(string.IsNullOrEmpty(getSpriteCollectionLocation()))
+                if (string.IsNullOrEmpty(getSpriteCollectionLocation()))
                 {
                     MessageBox.Show("Unable to find sprites.exe. Do you have sprites installed?", "Error",
                         MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -1330,6 +1098,12 @@ namespace SpriteEditor
                 }
                 if (treeView.Nodes.Count <= 0)
                     return;
+                if (pictureBox.Tag.Equals("spriteEditorDefault.png"))
+                {
+                    MessageBox.Show("You must add an Image before testing the sprite!\n\nGo to View > Open Image to add an image and then try again.", "Error",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
                 if (string.IsNullOrEmpty(_workingFile))
                 {
                     MessageBox.Show("Please use File > Save As to set the working file location.", "Error",
@@ -1369,7 +1143,12 @@ namespace SpriteEditor
         private void editContextMenuItem_Click(object sender, EventArgs e)
         {
             if (treeView.SelectedNode != null)
+            {
                 treeView.SelectedNode.BeginEdit();
+
+                if (treeView.SelectedNode.Tag.Equals(TreeNodeTag.File))
+                    _workingFile = string.Empty;
+            }
         }
 
         /// <summary>
@@ -1466,7 +1245,6 @@ namespace SpriteEditor
                     statusLabel.Text = openFile.SafeFileName + " loaded " + result + ".";
 
                     zoomSlider.Value = 1;
-                    _imageOriginal = pictureBox.Image;
                     _images.Add(new Bitmap(openFile.FileName));
                     _imageLocations.Add(openFile.FileName);
                     Properties.Settings.Default.lastOpenedImageDir = Path.GetDirectoryName(openFile.FileName);
@@ -1508,10 +1286,7 @@ namespace SpriteEditor
             viewDependenciesMenu.Enabled = viewDependenciesMenu.DropDownItems.Count != 0;
             viewOpenImageMenuItem.Enabled = treeView.Nodes.Count > 0;
             viewShowErrorListMenuItem.Enabled = treeView.Nodes.Count > 0;
-            if(errorList.Visible == false)
-                viewShowErrorListMenuItem.Text = "Show Error List";
-            else
-                viewShowErrorListMenuItem.Text = "Hide Error List";
+            viewShowErrorListMenuItem.Text = errorList.Visible == false ? "Show Error List" : "Hide Error List";
         }
 
         /// <summary>
@@ -1529,12 +1304,14 @@ namespace SpriteEditor
                     if (addHere.Nodes.Count != 0)
                         addHere.Nodes[0].Text = pictureBox.Tag.ToString();
                     else
-                        addHere.Nodes.Add(getNewNode(pictureBox.Tag.ToString(), TreeNodeTag.Value));
+                        addHere.Nodes.Add(newTreeNode(pictureBox.Tag.ToString(), TreeNodeTag.Value));
                 }
                 else if (treeView.SelectedNode.Tag.Equals(TreeNodeTag.Value))
                 {
                     addHere.Text = pictureBox.Tag.ToString();
                 }
+                sortTree();
+                validateTree();
                 statusLabel.Text = "Operation successful.";
             }
             else
@@ -1563,11 +1340,12 @@ namespace SpriteEditor
         {
             ToolStripMenuItem paramToAdd = sender as ToolStripMenuItem;
             if (treeView.Nodes.Count != 0 && paramToAdd != null && treeView.Nodes.Find(paramToAdd.Text, true).Length == 0)
-                treeView.Nodes[0].Nodes.Add(getNewNode(paramToAdd.Text, TreeNodeTag.State));
+                treeView.Nodes[0].Nodes.Add(newTreeNode(paramToAdd.Text, TreeNodeTag.State));
             else
                 MessageBox.Show("Node already exists, aborting!", "Unable to add Node.",
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
             sortTree();
+            validateTree();
         }
 
         /// <summary>
@@ -1577,35 +1355,39 @@ namespace SpriteEditor
         /// <param name="e">Event arguments.</param>
         private void addNewGroupContextMenuItem_Click(object sender, EventArgs e)
         {
-            if (treeView.SelectedNode != null && treeView.SelectedNode.Tag.Equals(TreeNodeTag.Index))
-            {
-                TreeNode groupNode = treeView.SelectedNode;
-                if (treeView.SelectedNode.Text.Contains("["))
-                    groupNode = treeView.SelectedNode.Parent;
-                int count = groupNode.Nodes.Count;
-                groupNode.Nodes.Add(getNewNode(String.Concat("[", ++count, "]"), TreeNodeTag.Index));
+            if (treeView.SelectedNode == null ||
+                (!treeView.SelectedNode.Tag.Equals(TreeNodeTag.Index) &&
+                 !treeView.SelectedNode.Tag.Equals(TreeNodeTag.Parameter)))
+                return;
 
-                if (groupNode.Text.Equals("fixtures"))
-                {
-                    groupNode.LastNode.Nodes.Add(getNewNode("x", TreeNodeTag.Parameter));
-                    groupNode.LastNode.Nodes.Add(getNewNode("y", TreeNodeTag.Parameter));
-                    groupNode.LastNode.Nodes.Add(getNewNode("w", TreeNodeTag.Parameter));
-                    groupNode.LastNode.Nodes.Add(getNewNode("h", TreeNodeTag.Parameter));
-                }
-                else if (groupNode.Text.Equals("credits"))
-                {
-                    groupNode.LastNode.Nodes.Add(getNewNode("author", TreeNodeTag.Parameter));
-                    groupNode.LastNode.Nodes.Add(getNewNode("description", TreeNodeTag.Parameter));
-                    groupNode.LastNode.Nodes.Add(getNewNode("url", TreeNodeTag.Parameter));
-                }
-                else if (groupNode.Text.Equals("spawn"))
-                {
-                    groupNode.LastNode.Nodes.Add(getNewNode("uri", TreeNodeTag.Parameter));
-                    groupNode.LastNode.Nodes.Add(getNewNode("spawnX", TreeNodeTag.Parameter));
-                    groupNode.LastNode.Nodes.Add(getNewNode("spawnY", TreeNodeTag.Parameter));
-                    groupNode.LastNode.Nodes.Add(getNewNode("spawnExplode", TreeNodeTag.Parameter));
-                }
+            TreeNode groupNode = treeView.SelectedNode;
+            if (treeView.SelectedNode.Text.Contains("["))
+                groupNode = treeView.SelectedNode.Parent;
+            int count = groupNode.Nodes.Count;
+            groupNode.Nodes.Add(newTreeNode(String.Concat("[", ++count, "]"), TreeNodeTag.Index));
+
+            if (groupNode.Text.Equals("fixtures"))
+            {
+                groupNode.LastNode.Nodes.Add(newTreeNode("x", TreeNodeTag.Parameter));
+                groupNode.LastNode.Nodes.Add(newTreeNode("y", TreeNodeTag.Parameter));
+                groupNode.LastNode.Nodes.Add(newTreeNode("w", TreeNodeTag.Parameter));
+                groupNode.LastNode.Nodes.Add(newTreeNode("h", TreeNodeTag.Parameter));
             }
+            else if (groupNode.Text.Equals("credits"))
+            {
+                groupNode.LastNode.Nodes.Add(newTreeNode("author", TreeNodeTag.Parameter));
+                groupNode.LastNode.Nodes.Add(newTreeNode("description", TreeNodeTag.Parameter));
+                groupNode.LastNode.Nodes.Add(newTreeNode("url", TreeNodeTag.Parameter));
+            }
+            else if (groupNode.Text.Equals("spawn"))
+            {
+                groupNode.LastNode.Nodes.Add(newTreeNode("uri", TreeNodeTag.Parameter));
+                groupNode.LastNode.Nodes.Add(newTreeNode("spawnX", TreeNodeTag.Parameter));
+                groupNode.LastNode.Nodes.Add(newTreeNode("spawnY", TreeNodeTag.Parameter));
+                groupNode.LastNode.Nodes.Add(newTreeNode("spawnExplode", TreeNodeTag.Parameter));
+            }
+            sortTree();
+            validateTree();
         }
 
         /// <summary>
@@ -1725,16 +1507,16 @@ namespace SpriteEditor
         /// <param name="e">Event arguments.</param>
         private void fileSaveMenuItem_Click(object sender, EventArgs e)
         {
-            if (string.IsNullOrEmpty(_workingFile))
+            if (treeView.Nodes.Count == 0)
             {
-                MessageBox.Show("Please use File > Save As to set the working file.", "Error",
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Cannot save empty file.","Save Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
-            if (treeView.Nodes.Count == 0)
+            if (string.IsNullOrEmpty(_workingFile))
             {
-                statusLabel.Text = "Cannot save. Empty file!";
+                fileSaveAsMenuItem_Click(fileSaveMenuItem, null);
                 return;
             }
 
@@ -1771,22 +1553,23 @@ namespace SpriteEditor
             // add the new state node unless it already exists
             if (treeView.Nodes.Find(newState, true).Length == 0)
             {
-                treeView.Nodes[0].Nodes.Add(getNewNode(newState, TreeNodeTag.State));
+                treeView.Nodes[0].Nodes.Add(newTreeNode(newState, TreeNodeTag.State));
 
                 // add isChain: 1 if first call to Increment State
                 if (string.IsNullOrEmpty(stateNo))
                 {
                     if (!treeView.SelectedNode.Nodes.ContainsKey("isChain"))
                     {
-                        treeView.SelectedNode.Nodes.Add(getNewNode("isChain", TreeNodeTag.Parameter));
-                        treeView.SelectedNode.Nodes[treeView.SelectedNode.Nodes.IndexOfKey("isChain")].Nodes.Add( getNewNode("1", TreeNodeTag.Value) );
+                        treeView.SelectedNode.Nodes.Add(newTreeNode("isChain", TreeNodeTag.Parameter));
+                        treeView.SelectedNode.Nodes[treeView.SelectedNode.Nodes.IndexOfKey("isChain")].Nodes.Add( newTreeNode("1", TreeNodeTag.Value) );
                     }
                 }
+                sortTree();
+                validateTree();
             }
             else
                 MessageBox.Show("State " + newState + " already exists! Aborting.", "Unable to increment state.",
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            sortTree();
         }
 
         /// <summary>
@@ -1806,9 +1589,12 @@ namespace SpriteEditor
         {
             ToolStripMenuItem s = sender as ToolStripMenuItem;
             if (s == null) return;
-            treeView.SelectedNode.Nodes.Add(getNewNode(" ", treeNodeTagEnumFromString(s.Tag.ToString())));
-            treeView.SelectedNode.Expand();
-            treeView.SelectedNode.LastNode.BeginEdit();
+            TreeNode addHere = treeView.SelectedNode;
+            if (sender.Equals(stateContextMenuManualEntry))
+                addHere = treeView.SelectedNode.Parent;
+            addHere.Nodes.Add(newTreeNode("New Node", treeNodeTagEnumFromString(s.Tag.ToString())));
+            addHere.Expand();
+            addHere.LastNode.BeginEdit();
         }
 
         /// <summary>
@@ -1875,6 +1661,7 @@ namespace SpriteEditor
             Properties.Settings.Default.FormTop = Top;
             Properties.Settings.Default.FormLeft = Left;
             Properties.Settings.Default.SplitterDistance = splitContainer1.SplitterDistance;
+            Properties.Settings.Default.toolBarVisibility = toolBar.Visible;
             Properties.Settings.Default.Save();
         }
 
@@ -1893,16 +1680,18 @@ namespace SpriteEditor
                 return;
             }
             treeView.SelectedNode.Expand();
-            TreeNode spawnNode = getNewNode("spawn", TreeNodeTag.Index);
-            TreeNode groupNode = getNewNode("[1]", TreeNodeTag.Index);
+            TreeNode spawnNode = newTreeNode("spawn", TreeNodeTag.Index);
+            TreeNode groupNode = newTreeNode("[1]", TreeNodeTag.Index);
             treeView.SelectedNode.Nodes.Add(spawnNode);
             spawnNode.Nodes.Add(groupNode);
-            groupNode.Nodes.Add(getNewNode("uri", TreeNodeTag.Parameter));
-            groupNode.Nodes.Add(getNewNode("spawnX", TreeNodeTag.Parameter));
-            groupNode.Nodes.Add(getNewNode("spawnY", TreeNodeTag.Parameter));
-            groupNode.Nodes.Add(getNewNode("spawnExplode", TreeNodeTag.Parameter));
+            groupNode.Nodes.Add(newTreeNode("uri", TreeNodeTag.Parameter));
+            groupNode.Nodes.Add(newTreeNode("spawnX", TreeNodeTag.Parameter));
+            groupNode.Nodes.Add(newTreeNode("spawnY", TreeNodeTag.Parameter));
+            groupNode.Nodes.Add(newTreeNode("spawnExplode", TreeNodeTag.Parameter));
             spawnNode.Expand();
             groupNode.Expand();
+            sortTree();
+            validateTree();
         }
 
         // add parameter > fixtures clicked
@@ -1921,16 +1710,18 @@ namespace SpriteEditor
                 return;
             }
             treeView.SelectedNode.Expand();
-            TreeNode spawnNode = getNewNode("fixtures", TreeNodeTag.Index);
-            TreeNode groupNode = getNewNode("[1]", TreeNodeTag.Index);
+            TreeNode spawnNode = newTreeNode("fixtures", TreeNodeTag.Index);
+            TreeNode groupNode = newTreeNode("[1]", TreeNodeTag.Index);
             treeView.SelectedNode.Nodes.Add(spawnNode);
             spawnNode.Nodes.Add(groupNode);
-            groupNode.Nodes.Add(getNewNode("x", TreeNodeTag.Parameter));
-            groupNode.Nodes.Add(getNewNode("y", TreeNodeTag.Parameter));
-            groupNode.Nodes.Add(getNewNode("w", TreeNodeTag.Parameter));
-            groupNode.Nodes.Add(getNewNode("h", TreeNodeTag.Parameter));
+            groupNode.Nodes.Add(newTreeNode("x", TreeNodeTag.Parameter));
+            groupNode.Nodes.Add(newTreeNode("y", TreeNodeTag.Parameter));
+            groupNode.Nodes.Add(newTreeNode("w", TreeNodeTag.Parameter));
+            groupNode.Nodes.Add(newTreeNode("h", TreeNodeTag.Parameter));
             spawnNode.Expand();
             groupNode.Expand();
+            sortTree();
+            validateTree();
         }
 
         /// <summary>
@@ -1989,9 +1780,9 @@ namespace SpriteEditor
         {
             if (treeView.Nodes.Count == 0)
                 return;
-            draw = true;
-            quickX = e.X;
-            quickY = e.Y;
+            _draw = true;
+            _quickX = e.X;
+            _quickY = e.Y;
         }
 
         /// <summary>
@@ -2001,17 +1792,17 @@ namespace SpriteEditor
         /// <param name="e">Event arguments.</param>
         private void pictureBox_MouseUp(object sender, MouseEventArgs e)
         {
-            draw = false;
+            _draw = false;
 
-            Debug.WriteLine("Actual: cropX: " + quickX + ", cropY: " + quickY + ", cropW: " + quickW + ", cropH: " + quickH);
-            Debug.WriteLine("Scaled: cropX: " + quickX / zoomSlider.Value + ", cropY: " + quickY / zoomSlider.Value
-                + ", cropW: " + quickW / zoomSlider.Value + ", cropH: " + quickH / zoomSlider.Value);
+            Debug.WriteLine("Actual: cropX: " + _quickX + ", cropY: " + _quickY + ", cropW: " + _quickW + ", cropH: " + _quickH);
+            Debug.WriteLine("Scaled: cropX: " + _quickX / zoomSlider.Value + ", cropY: " + _quickY / zoomSlider.Value
+                + ", cropW: " + _quickW / zoomSlider.Value + ", cropH: " + _quickH / zoomSlider.Value);
 
 
             // get final cropX/Y/W/H values and set them in tree accordingly
             if (treeView.SelectedNode != null && treeView.SelectedNode.Tag.Equals(TreeNodeTag.State))
             {
-                if (quickW > 0 && quickH > 0)
+                if (_quickW > 0 && _quickH > 0)
                 {
                     // check to see if crop_ nodes already exist
                     TreeNode[] cropXnodes = treeView.SelectedNode.Nodes.Find("cropX", true);
@@ -2023,64 +1814,64 @@ namespace SpriteEditor
                     // else check and see if node already has child and set accordingly
                     if (cropXnodes.Length == 0) // node doesnt exist, create it
                     {
-                        treeView.SelectedNode.Nodes.Add(getNewNode("cropX", TreeNodeTag.Parameter));
-                        treeView.SelectedNode.Nodes[treeView.SelectedNode.Nodes.IndexOfKey("cropX")].Nodes.Add(getNewNode((quickX / zoomSlider.Value).ToString(), TreeNodeTag.Value));
+                        treeView.SelectedNode.Nodes.Add(newTreeNode("cropX", TreeNodeTag.Parameter));
+                        treeView.SelectedNode.Nodes[treeView.SelectedNode.Nodes.IndexOfKey("cropX")].Nodes.Add(newTreeNode((_quickX / zoomSlider.Value).ToString(), TreeNodeTag.Value));
                     }
                     else // node does exist -> set text to new value
                     {
                         if (cropXnodes[0].Nodes.Count == 0) // node has no child, create new Value node and add
-                            cropXnodes[0].Nodes.Add(getNewNode((quickX / zoomSlider.Value).ToString(), TreeNodeTag.Value));
+                            cropXnodes[0].Nodes.Add(newTreeNode((_quickX / zoomSlider.Value).ToString(), TreeNodeTag.Value));
                         else // node already exists, change value
-                            cropXnodes[0].Nodes[0].Text = (quickX / zoomSlider.Value).ToString();
+                            cropXnodes[0].Nodes[0].Text = (_quickX / zoomSlider.Value).ToString();
                     }
 
                     // repeat the above logic for cropY / cropW / cropH
                     if (cropYnodes.Length == 0)
                     {
-                        treeView.SelectedNode.Nodes.Add(getNewNode("cropY", TreeNodeTag.Parameter));
-                        treeView.SelectedNode.Nodes[treeView.SelectedNode.Nodes.IndexOfKey("cropY")].Nodes.Add(getNewNode((quickY / zoomSlider.Value).ToString(), TreeNodeTag.Value));
+                        treeView.SelectedNode.Nodes.Add(newTreeNode("cropY", TreeNodeTag.Parameter));
+                        treeView.SelectedNode.Nodes[treeView.SelectedNode.Nodes.IndexOfKey("cropY")].Nodes.Add(newTreeNode((_quickY / zoomSlider.Value).ToString(), TreeNodeTag.Value));
                     }
                     else
                     {
                         if (cropYnodes[0].Nodes.Count == 0)
-                            cropYnodes[0].Nodes.Add(getNewNode((quickY / zoomSlider.Value).ToString(), TreeNodeTag.Value));
+                            cropYnodes[0].Nodes.Add(newTreeNode((_quickY / zoomSlider.Value).ToString(), TreeNodeTag.Value));
                         else
-                            cropYnodes[0].Nodes[0].Text = (quickY / zoomSlider.Value).ToString();
+                            cropYnodes[0].Nodes[0].Text = (_quickY / zoomSlider.Value).ToString();
                     }
 
                     if (cropWnodes.Length == 0)
                     {
-                        treeView.SelectedNode.Nodes.Add(getNewNode("cropW", TreeNodeTag.Parameter));
-                        treeView.SelectedNode.Nodes[treeView.SelectedNode.Nodes.IndexOfKey("cropW")].Nodes.Add(getNewNode((quickW / zoomSlider.Value).ToString(), TreeNodeTag.Value));
+                        treeView.SelectedNode.Nodes.Add(newTreeNode("cropW", TreeNodeTag.Parameter));
+                        treeView.SelectedNode.Nodes[treeView.SelectedNode.Nodes.IndexOfKey("cropW")].Nodes.Add(newTreeNode((_quickW / zoomSlider.Value).ToString(), TreeNodeTag.Value));
                     }
                     else
                     {
                         if (cropWnodes[0].Nodes.Count == 0)
-                            cropWnodes[0].Nodes.Add(getNewNode((quickW / zoomSlider.Value).ToString(), TreeNodeTag.Value));
+                            cropWnodes[0].Nodes.Add(newTreeNode((_quickW / zoomSlider.Value).ToString(), TreeNodeTag.Value));
                         else
-                            cropWnodes[0].Nodes[0].Text = (quickW / zoomSlider.Value).ToString();
+                            cropWnodes[0].Nodes[0].Text = (_quickW / zoomSlider.Value).ToString();
                     }
 
                     if (cropHnodes.Length == 0)
                     {
-                        treeView.SelectedNode.Nodes.Add(getNewNode("cropH", TreeNodeTag.Parameter));
-                        treeView.SelectedNode.Nodes[treeView.SelectedNode.Nodes.IndexOfKey("cropH")].Nodes.Add(getNewNode((quickH / zoomSlider.Value).ToString(), TreeNodeTag.Value));
+                        treeView.SelectedNode.Nodes.Add(newTreeNode("cropH", TreeNodeTag.Parameter));
+                        treeView.SelectedNode.Nodes[treeView.SelectedNode.Nodes.IndexOfKey("cropH")].Nodes.Add(newTreeNode((_quickH / zoomSlider.Value).ToString(), TreeNodeTag.Value));
                     }
                     else
                     {
                         if (cropHnodes[0].Nodes.Count == 0)
-                            cropHnodes[0].Nodes.Add(getNewNode((quickH / zoomSlider.Value).ToString(), TreeNodeTag.Value));
+                            cropHnodes[0].Nodes.Add(newTreeNode((_quickH / zoomSlider.Value).ToString(), TreeNodeTag.Value));
                         else
-                            cropHnodes[0].Nodes[0].Text = (quickH / zoomSlider.Value).ToString();
+                            cropHnodes[0].Nodes[0].Text = (_quickH / zoomSlider.Value).ToString();
                     }
 
                     // all done! set status label to let the user know it worked
-                    statusLabel.Text = "Quick Crop successful. cropX: " + quickX / zoomSlider.Value + " cropY: " + quickY / zoomSlider.Value
-                        + " cropW: " + quickW / zoomSlider.Value + " cropH: " + quickH / zoomSlider.Value;
+                    statusLabel.Text = "Quick Crop successful. cropX: " + _quickX / zoomSlider.Value + " cropY: " + _quickY / zoomSlider.Value
+                        + " cropW: " + _quickW / zoomSlider.Value + " cropH: " + _quickH / zoomSlider.Value;
                     treeView.SelectedNode.Expand();
                 }
             }
-            quickX = quickY = quickW = quickH = 1;
+            _quickX = _quickY = _quickW = _quickH = 1;
         }
 
         /// <summary>
@@ -2090,29 +1881,32 @@ namespace SpriteEditor
         /// <param name="e">Event arguments.</param>
         private void toolsValidateSpriteMenuItem_Click(object sender, EventArgs e)
         {
-            List<string> errors = validateSprite();
-            StringBuilder sb = new StringBuilder();
-
-            // scan for errors and append to stringbuilder
-            int i = 1;
-            foreach (string s in errors)
+            if (treeView.Nodes.Count == 0)
             {
-                sb.Append("\r\n[" + i + "] " + s);
-                i++;
+                errorList.Text = "No sprite loaded.";
+                errorPanel.Visible = true;
+                return;
             }
 
-            // post results to errorPanel controls
+            List<string> errors = validate();
+
             if (errors.Count == 0)
             {
-                errorList.Text = "No errors found.";
-                errorIndicator.Image = Properties.Resources.check;
+                errorIndicator.Image = Properties.Resources.validate24x24;
+                errorIndicator.ToolTipText = "No errors found.";
             }
             else
             {
+                StringBuilder sb = new StringBuilder();
+                sb.Append("[" + errors.Count + "] errors found.\n");
+
+                for (int i = 0; i < errors.Count; i++)
+                    sb.Append("\n" + (i+1) + ")  " + errors[i]);
+
+                errorIndicator.Image = Properties.Resources.error24x24;
+                errorIndicator.ToolTipText = errors.Count + " errors found.";
                 errorList.Text = sb.ToString();
-                errorIndicator.Image = Properties.Resources.errorList;
             }
-            errorIndicator.Text = "[" + errors.Count + "] errors found.";
             errorPanel.Visible = true;
         }
 
@@ -2121,23 +1915,23 @@ namespace SpriteEditor
         /// Traverse treeView and check for errors in sprite.
         /// </summary>
         /// <returns>List of errors in string form.</returns>
-        private List<string> validateSprite()
+        private List<string> validate()
         {
-            List<string> errorList = new List<string>();
+            List<string> errors = new List<string>();
             string chainNodeName = string.Empty;
             string prevStateName = string.Empty;
 
             if (treeView.Nodes.Count == 0 || treeView.Nodes[0].Nodes.Count == 0)
             {
-                errorList.Add("Tree is empty or has no STATES to validate!");
-                return errorList;
+                errors.Add("Tree is empty or has no STATES to validate!");
+                return errors;
             }
 
             // check for required states
             if (!treeView.Nodes[0].Nodes.Find("SPRITE_META_DATA", true).Any())
-                errorList.Add("State SPRITE_META_DATA is required and not found.");
+                errors.Add("State SPRITE_META_DATA is required and not found.");
             if (!treeView.Nodes[0].Nodes.Find("SPRITE_STATE_DEFAULT", true).Any())
-                errorList.Add("State SPRITE_STATE_DEFAULT is required and not found.");
+                errors.Add("State SPRITE_STATE_DEFAULT is required and not found.");
 
             //validate states
             TreeNode stateNode = treeView.Nodes[0].Nodes[0];
@@ -2153,17 +1947,17 @@ namespace SpriteEditor
 
                 // detect invalid and missing isChains
                 if (!stateNo.Equals(string.Empty) && prevStateName.StartsWith(chainNodeName) && !chainNodeName.Equals(stateName))
-                    errorList.Add(stateNode.Text + " is unreachable. Add isChain:1 to " + stateName + ".");
+                    errors.Add(stateNode.Text + " is unreachable. Add isChain:1 to " + stateName + ".");
                 if (stateNode.Nodes.Find("isChain", true).Length != 0)
                     chainNodeName = stateNode.Text;
 
                 // check sprite state is UPPER_CASE
-                if (!stateNode.Text.Equals(stateNode.Text.ToUpper()) && _possibleStates.Contains<string>(stateName.ToUpper()))
-                    errorList.Add("State [" + stateNode.Text + "] must be all UPPER CASE.");
+                if (!stateNode.Text.Equals(stateNode.Text.ToUpper()) && _possibleStates.Contains(stateName.ToUpper()))
+                    errors.Add("State [" + stateNode.Text + "] must be all UPPER CASE.");
 
                 // check if STATE is listed in _possibleStates
-                if (!_possibleStates.Contains<string>(stateName.ToUpper()))
-                    errorList.Add("State [" + stateNode.Text + "] is not a supported state.");
+                if (!_possibleStates.Contains(stateName.ToUpper()))
+                    errors.Add("State [" + stateNode.Text + "] is not a supported state.");
 
                 // parse STATE nodes
                 if(stateNode.Nodes.Count != 0)
@@ -2176,16 +1970,16 @@ namespace SpriteEditor
                         {
                             //Debug.WriteLine("In: " + stateNode.Text + "\\" + paramOrIndexNode.Text);
                             // is it in the list of supported params? if not, error
-                            if (!_possibleParams.Contains<string>(paramOrIndexNode.Text) &&
-                                !_possibleActions.Contains<string>(paramOrIndexNode.Text) &&
-                                !_possibleFlags.Contains<string>(paramOrIndexNode.Text))
+                            if (!_possibleParams.Contains(paramOrIndexNode.Text) &&
+                                !_possibleActions.Contains(paramOrIndexNode.Text) &&
+                                !_possibleFlags.Contains(paramOrIndexNode.Text))
                             {
-                                errorList.Add("Parameter [" + paramOrIndexNode.Text + "] in [" + stateNode.Text + "] is the wrong case or is invalid.");
+                                errors.Add("Parameter [" + paramOrIndexNode.Text + "] in [" + stateNode.Text + "] is the wrong case or is invalid.");
                             }
 
                             // if param has no value subnode, error
                             if (paramOrIndexNode.Nodes.Count == 0 || string.IsNullOrWhiteSpace(paramOrIndexNode.Nodes[0].Text))
-                                errorList.Add("Parameter [" + paramOrIndexNode.Text + "] in [" + stateNode.Text + "] does not have an attatched value.");
+                                errors.Add("Parameter [" + paramOrIndexNode.Text + "] in [" + stateNode.Text + "] does not have an attatched value.");
                             else
                             {
                                 // check flag param types for 0 or 1 values
@@ -2194,16 +1988,16 @@ namespace SpriteEditor
                                     || paramOrIndexNode.Text.Equals("spawnExplode"))
                                 {
                                     if (!isValidFlag(paramOrIndexNode.Nodes[0].Text))
-                                        errorList.Add("Param [" + paramOrIndexNode.Text + "] in [" + stateNode.Text + "] must have a value of 0 or 1.");
+                                        errors.Add("Param [" + paramOrIndexNode.Text + "] in [" + stateNode.Text + "] must have a value of 0 or 1.");
                                 }
 
                                 // check html hex value is valid
                                 if (paramOrIndexNode.Text.Equals("transparent") && !isValidHTMLHexColor(paramOrIndexNode.Nodes[0].Text))
-                                    errorList.Add("Param [" + paramOrIndexNode.Text + "] in [" + stateNode.Text + "] must have a valid HTML Hex color code such as \"F0F0F0\".");
+                                    errors.Add("Param [" + paramOrIndexNode.Text + "] in [" + stateNode.Text + "] must have a valid HTML Hex color code such as \"F0F0F0\".");
 
                                 // check uri filename is valid
                                 if (paramOrIndexNode.Text.Equals("uri") && !isValidFileName(paramOrIndexNode.Nodes[0].Text))
-                                    errorList.Add("Param [" + paramOrIndexNode.Text + "] in [" + stateNode.Text + "] does not have a valid filename.");
+                                    errors.Add("Param [" + paramOrIndexNode.Text + "] in [" + stateNode.Text + "] does not have a valid filename.");
 
                                 // check int params are valid
                                 if ((paramOrIndexNode.Text.Equals("sizeMultiplier") || paramOrIndexNode.Text.Equals("sizeDivider") ||
@@ -2212,12 +2006,12 @@ namespace SpriteEditor
                                     paramOrIndexNode.Text.Equals("cropH") || paramOrIndexNode.Text.Equals("offsX") ||
                                     paramOrIndexNode.Text.Equals("offsY")) && !isValidInteger((paramOrIndexNode.Nodes[0].Text)))
                                 {
-                                    errorList.Add("Param [" + paramOrIndexNode.Text + "] in [" + stateNode.Text + "] must be an Integer.");
+                                    errors.Add("Param [" + paramOrIndexNode.Text + "] in [" + stateNode.Text + "] must be an Integer.");
                                 }
 
                                 // check double params valid
                                 if (paramOrIndexNode.Text.Equals("walkMultiplier") && !isValidDouble(paramOrIndexNode.Nodes[0].Text))
-                                    errorList.Add("Param [" + paramOrIndexNode.Text + "] in [" + stateNode.Text + "] must be a Double value.");
+                                    errors.Add("Param [" + paramOrIndexNode.Text + "] in [" + stateNode.Text + "] must be a Double value.");
                             }
                         }
 
@@ -2226,11 +2020,11 @@ namespace SpriteEditor
                         {
                             // check if valid array index node
                             if (!isValidIndexNode(paramOrIndexNode))
-                                errorList.Add("Array index " + paramOrIndexNode.Text + " in [" + stateNode.Text + "] is invalid.");
+                                errors.Add("Array index " + paramOrIndexNode.Text + " in [" + stateNode.Text + "] is invalid.");
 
                             // if index has no value subnode, error
                             if (paramOrIndexNode.Nodes.Count == 0 || string.IsNullOrWhiteSpace(paramOrIndexNode.Nodes[0].Text))
-                                errorList.Add("Array Index " + paramOrIndexNode.Text + " in [" + stateNode.Text + "] does not have any attatched values.");
+                                errors.Add("Array Index " + paramOrIndexNode.Text + " in [" + stateNode.Text + "] does not have any attatched values.");
                             else
                             {
                                 // iterate index subnodes and validate
@@ -2239,7 +2033,7 @@ namespace SpriteEditor
                                 {
                                     // check for empty indices
                                     if (indexSubnode.Nodes.Count == 0 || string.IsNullOrWhiteSpace(indexSubnode.Nodes[0].Text))
-                                        errorList.Add("Node [" + indexSubnode.Text + "] in [" + stateNode.Text + "\\" + paramOrIndexNode.Text + "] does not have any attatched values.");
+                                        errors.Add("Node [" + indexSubnode.Text + "] in [" + stateNode.Text + "\\" + paramOrIndexNode.Text + "] does not have any attatched values.");
                                     else
                                     {
                                         // iterate index params and validate
@@ -2250,16 +2044,16 @@ namespace SpriteEditor
 
                                             // check for valueless indexParams
                                             if (indexParam.Nodes.Count == 0 || string.IsNullOrWhiteSpace(indexParam.Nodes[0].Text))
-                                                errorList.Add("Node [" + indexParam.Text + "] in [" + stateNode.Text + "\\" + paramOrIndexNode.Text + "\\" + indexSubnode.Text + "] does not have any attatched values.");
+                                                errors.Add("Node [" + indexParam.Text + "] in [" + stateNode.Text + "\\" + paramOrIndexNode.Text + "\\" + indexSubnode.Text + "] does not have any attatched values.");
                                             else
                                             {
                                                 // check for invalid indexParams in credits/spawn/fixtures
                                                 if (paramOrIndexNode.Text.Equals("credits") && !indexParam.Text.Equals("author") && !indexParam.Text.Equals("url") && !indexParam.Text.Equals("description"))
-                                                    errorList.Add("Node [" + indexParam.Text + "] in [" + stateNode.Text + "\\" + paramOrIndexNode.Text + "\\" + indexSubnode.Text + "] is invalid or the wrong case.");
+                                                    errors.Add("Node [" + indexParam.Text + "] in [" + stateNode.Text + "\\" + paramOrIndexNode.Text + "\\" + indexSubnode.Text + "] is invalid or the wrong case.");
                                                 if (paramOrIndexNode.Text.Equals("spawn") && !indexParam.Text.Equals("uri") && !indexParam.Text.Equals("spawnX") && !indexParam.Text.Equals("spawnY") && !indexParam.Text.Equals("spawnExplode"))
-                                                    errorList.Add("Node [" + indexParam.Text + "] in [" + stateNode.Text + "\\" + paramOrIndexNode.Text + "\\" + indexSubnode.Text + "] is invalid or the wrong case.");
+                                                    errors.Add("Node [" + indexParam.Text + "] in [" + stateNode.Text + "\\" + paramOrIndexNode.Text + "\\" + indexSubnode.Text + "] is invalid or the wrong case.");
                                                 if (paramOrIndexNode.Text.Equals("fixtures") && !indexParam.Text.Equals("x") && !indexParam.Text.Equals("y") && !indexParam.Text.Equals("w") && !indexParam.Text.Equals("h"))
-                                                    errorList.Add("Node [" + indexParam.Text + "] in [" + stateNode.Text + "\\" + paramOrIndexNode.Text + "\\" + indexSubnode.Text + "] is invalid or the wrong case.");
+                                                    errors.Add("Node [" + indexParam.Text + "] in [" + stateNode.Text + "\\" + paramOrIndexNode.Text + "\\" + indexSubnode.Text + "] is invalid or the wrong case.");
                                             }
                                             indexParam = indexParam.NextNode;
                                         }
@@ -2274,7 +2068,7 @@ namespace SpriteEditor
                 prevStateName = stateNode.Text;
                 stateNode = stateNode.NextNode;
             } // end stateNode loop
-            return errorList;
+            return errors;
         }
 
         /// <summary>
@@ -2284,22 +2078,7 @@ namespace SpriteEditor
         /// <returns>True if p is 0 or 1, else false.</returns>
         private bool isValidFlag(string p)
         {
-            if (!p.Equals("0") && !p.Equals("1"))
-                return false;
-            else
-                return true;
-        }
-
-        /// <summary>
-        /// Check if sprite is valid or not.
-        /// </summary>
-        /// <returns>True if no erros found. else false.</returns>
-        private bool isValidSprite()
-        {
-            if (validateSprite().Count == 0)
-                return true;
-            else
-                return false;
+            return p.Equals("0") || p.Equals("1");
         }
 
         /// <summary>
@@ -2309,10 +2088,7 @@ namespace SpriteEditor
         /// <returns>True if it does not contain invalid chars.</returns>
         private static bool isValidFileName(String fileName)
         {
-            if (fileName.IndexOfAny(System.IO.Path.GetInvalidFileNameChars()) != -1)
-                return false;
-            else
-                return true;
+            return fileName.IndexOfAny(Path.GetInvalidFileNameChars()) == -1;
         }
 
         /// <summary>
@@ -2322,10 +2098,7 @@ namespace SpriteEditor
         /// <returns>True if valid color code, else false.</returns>
         private static bool isValidHTMLHexColor(String colorHex)
         {
-            if (colorHex.Length == 6 && _htmlHexRegex.Match(colorHex).Success)
-                return true;
-            else
-                return false;
+            return colorHex.Length == 6 && _htmlHexRegex.Match(colorHex).Success;
         }
 
         /// <summary>
@@ -2335,12 +2108,8 @@ namespace SpriteEditor
         /// <returns>True if valid, else false.</returns>
         private static bool isValidIndexNode(TreeNode indexNode)
         {
-            if (!_indexNodeRegex.Match(indexNode.Text).Success && !indexNode.Text.Contains("credits")
-                && !indexNode.Text.Contains("spawn") && !indexNode.Text.Contains("fixtures"))
-            {
-                return false;
-            }
-            return true;
+            return _indexNodeRegex.Match(indexNode.Text).Success || indexNode.Text.Contains("credits")
+                || indexNode.Text.Contains("spawn") || indexNode.Text.Contains("fixtures");
         }
 
         /// <summary>
@@ -2351,10 +2120,7 @@ namespace SpriteEditor
         private static bool isValidInteger(String numberString)
         {
             int conversionResult;
-            if (Int32.TryParse(numberString, out conversionResult))
-                return true;
-            else
-                return false;
+            return Int32.TryParse(numberString, out conversionResult);
         }
 
         /// <summary>
@@ -2365,10 +2131,7 @@ namespace SpriteEditor
         private static bool isValidDouble(String numberString)
         {
             double conversionResult;
-            if (Double.TryParse(numberString, out conversionResult))
-                return true;
-            else
-                return false;
+            return Double.TryParse(numberString, out conversionResult);
         }
 
         /// <summary>
@@ -2379,10 +2142,7 @@ namespace SpriteEditor
         private static bool isValidURL(String url)
         {
             Regex urlRegEx = new Regex(@"(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?");
-            if (urlRegEx.Match(url).Success)
-                return true;
-            else
-                return false;
+            return urlRegEx.Match(url).Success;
         }
 
         /// <summary>
@@ -2392,8 +2152,9 @@ namespace SpriteEditor
         /// <param name="e">Event arguments.</param>
         private void treeView_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.KeyCode == Keys.Delete && !treeView.SelectedNode.Tag.Equals(TreeNodeTag.File))
-                treeView.SelectedNode.Remove();
+            if (e.KeyCode != Keys.Delete || treeView.SelectedNode.Tag.Equals(TreeNodeTag.File)) return;
+            treeView.SelectedNode.Remove();
+            validateTree();
         }
 
 
@@ -2412,8 +2173,376 @@ namespace SpriteEditor
             else
             {
                 viewShowErrorListMenuItem.Text = "Hide Error List";
-                errorPanel.Visible = true;
+                toolsValidateSpriteMenuItem_Click(viewShowErrorListMenuItem, null);
             }
+        }
+
+        /// <summary>
+        /// Create new file from frmWizard.
+        /// </summary>
+        /// <param name="sender">Object that raised the event</param>
+        /// <param name="e">Event arguments.</param>
+        private void fileNewSpriteWizardMenuItem_Click(object sender, EventArgs e)
+        {
+            // confirmUnsavedChanges with user that unsaved changed will be lost
+            if (confirmUnsavedChanges() == DialogResult.Cancel) return;
+
+            // display sprite wizard, get values, process values
+            using (var form = new frmWizard(_possibleActions, _possibleFlags, _possibleStates))
+            {
+                DialogResult result2 = form.ShowDialog();
+                if (result2 == DialogResult.OK)
+                {
+                    // clear controls for new sprite
+                    treeView.Nodes.Clear();
+                    _images.Clear();
+                    _imageLocations.Clear();
+                    pictureBox.Image = Properties.Resources.favicon;
+                    pictureBox.Height = pictureBox.Image.Height;
+                    pictureBox.Width = pictureBox.Image.Width;
+
+                    // store values from Sprite Wizard
+                    Dictionary<string, string> sprInfo = form._spriteInfo;
+                    List<string> actions = form._actions;
+                    List<string> flags = form._flags;
+                    List<string> states = form._states;
+
+                    // add required nodes
+                    treeView.Nodes.Add(newTreeNode(sprInfo["name"], TreeNodeTag.File));
+                    treeView.Nodes[0].Nodes.Add(newTreeNode("SPRITE_META_DATA", TreeNodeTag.State));
+                    treeView.Nodes[0].Nodes.Add(newTreeNode("SPRITE_STATE_DEFAULT", TreeNodeTag.State));
+
+                    // process frmWizard results and populate tree accordingly
+                    foreach (KeyValuePair<string, string> i in sprInfo)
+                    {
+                        switch (i.Key)
+                        {
+                            case "name":
+                                break;
+                            case "version":
+                                treeView.Nodes[0].Nodes["SPRITE_META_DATA"].Nodes.Add(newTreeNode("version", TreeNodeTag.Parameter));
+                                treeView.Nodes[0].Nodes["SPRITE_META_DATA"].Nodes["version"].Nodes.Add(newTreeNode(i.Value, TreeNodeTag.Value));
+                                break;
+                            case "author":
+                            case "description":
+                            case "url":
+                                if (treeView.Nodes[0].Nodes["SPRITE_META_DATA"].Nodes["credits"] == null)
+                                {
+                                    treeView.Nodes[0].Nodes["SPRITE_META_DATA"].Nodes.Add(newTreeNode("credits", TreeNodeTag.Index));
+                                    treeView.Nodes[0].Nodes["SPRITE_META_DATA"].Nodes["credits"].Nodes.Add(newTreeNode("[1]", TreeNodeTag.Index));
+                                }
+                                treeView.Nodes[0].Nodes["SPRITE_META_DATA"].Nodes["credits"].Nodes["[1]"].Nodes.Add(newTreeNode(i.Key, TreeNodeTag.Value));
+                                treeView.Nodes[0].Nodes["SPRITE_META_DATA"].Nodes["credits"].Nodes["[1]"].Nodes[i.Key].Nodes.Add(newTreeNode(i.Value, TreeNodeTag.Value));
+                                break;
+                        }
+                    }
+
+                    if (actions.Count != 0)
+                    {
+                        treeView.Nodes[0].Nodes["SPRITE_META_DATA"].Nodes.Add(newTreeNode("actions", TreeNodeTag.Parameter));
+                        foreach (string a in actions)
+                            treeView.Nodes[0].Nodes["SPRITE_META_DATA"].Nodes["actions"].Nodes.Add(newTreeNode(a, TreeNodeTag.Value));
+                    }
+
+                    if (flags.Count != 0)
+                    {
+                        treeView.Nodes[0].Nodes["SPRITE_META_DATA"].Nodes.Add(newTreeNode("flags", TreeNodeTag.Parameter));
+                        foreach (string f in flags)
+                            treeView.Nodes[0].Nodes["SPRITE_META_DATA"].Nodes["flags"].Nodes.Add(newTreeNode(f, TreeNodeTag.Value));
+                    }
+
+                    if (states.Count != 0)
+                    {
+                        foreach (string s in states)
+                            treeView.Nodes[0].Nodes.Add(newTreeNode(s, TreeNodeTag.State));
+                    }
+                    sortTree();
+                    validateTree();
+                    treeView.Nodes[0].Expand();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Create new blank file with user defined name.
+        /// </summary>
+        /// <param name="sender">Object that raised the event</param>
+        /// <param name="e">Event arguments.</param>
+        private void fileNewEmptySpriteMenuItem_Click(object sender, EventArgs e)
+        {
+            // confirmUnsavedChanges with user that unsaved changed will be lost
+            if (confirmUnsavedChanges() == DialogResult.Cancel) return;
+
+            // clear existint controls for new file
+            treeView.Nodes.Clear();
+            _images.Clear();
+            _imageLocations.Clear();
+            pictureBox.Image = Properties.Resources.favicon;
+            pictureBox.Height = pictureBox.Image.Height;
+            pictureBox.Width = pictureBox.Image.Width;
+
+            // finally, add node
+            treeView.Nodes.Add(newTreeNode("Enter File Name.spr", TreeNodeTag.File));
+            treeView.Nodes[0].Nodes.Add(newTreeNode("SPRITE_META_DATA", TreeNodeTag.State));
+            treeView.Nodes[0].Nodes.Add(newTreeNode("SPRITE_STATE_DEFAULT", TreeNodeTag.State));
+            treeView.ExpandAll();
+            sortTree();
+            treeView.Nodes[0].BeginEdit();
+        }
+
+        /// <summary>
+        /// Helper to create new file from template.
+        /// </summary>
+        /// <param name="actions">Actions to add.</param>
+        /// <param name="flags">Flags to add.</param>
+        /// <param name="states">States to add. SPRITE_META_DATA and SPRITE_STATE_DEFAULT included by default.</param>
+        private void newSpriteFromTemplate(string[] actions, string[] flags, string[] states)
+        {
+            // clear existint controls for new file
+            treeView.Nodes.Clear();
+            _images.Clear();
+            _imageLocations.Clear();
+            pictureBox.Image = Properties.Resources.favicon;
+            pictureBox.Height = pictureBox.Image.Height;
+            pictureBox.Width = pictureBox.Image.Width;
+
+            // populate file and required state nodes
+            treeView.Nodes.Add(newTreeNode("New.spr", TreeNodeTag.File));
+            treeView.Nodes[0].Nodes.Add(newTreeNode("SPRITE_META_DATA", TreeNodeTag.State));
+            treeView.Nodes[0].Nodes.Add(newTreeNode("SPRITE_STATE_DEFAULT", TreeNodeTag.State));
+
+            // populate metaData
+            TreeNode metaDataNode = treeView.Nodes[0].Nodes["SPRITE_META_DATA"];
+            metaDataNode.Nodes.Add(newTreeNode("version", TreeNodeTag.Parameter));
+            metaDataNode.Nodes["version"].Nodes.Add(newTreeNode("1", TreeNodeTag.Value));
+            metaDataNode.Nodes.Add(newTreeNode("credits", TreeNodeTag.Index));
+            metaDataNode.Nodes["credits"].Nodes.Add(newTreeNode("[1]", TreeNodeTag.Index));
+
+            TreeNode creditsIndexNode = metaDataNode.Nodes["credits"].Nodes["[1]"];
+            creditsIndexNode.Nodes.Add(newTreeNode("author", TreeNodeTag.Parameter));
+            creditsIndexNode.Nodes.Add(newTreeNode("description", TreeNodeTag.Parameter));
+            creditsIndexNode.Nodes.Add(newTreeNode("url", TreeNodeTag.Parameter));
+            creditsIndexNode.Nodes["author"].Nodes.Add(newTreeNode("yourName", TreeNodeTag.Value));
+            creditsIndexNode.Nodes["description"].Nodes.Add(newTreeNode("yourDescription", TreeNodeTag.Value));
+            creditsIndexNode.Nodes["url"].Nodes.Add(newTreeNode("http://", TreeNodeTag.Value));
+
+            if (actions.Length != 0)
+            {
+                metaDataNode.Nodes.Add(newTreeNode("actions", TreeNodeTag.Parameter));
+                TreeNode actionsNode = metaDataNode.Nodes["actions"];
+                foreach (string a in actions)
+                {
+                    actionsNode.Nodes.Add(newTreeNode(a, TreeNodeTag.Value));
+                }
+            }
+
+            if (flags.Length != 0)
+            {
+                metaDataNode.Nodes.Add(newTreeNode("flags", TreeNodeTag.Parameter));
+                TreeNode flagsNode = metaDataNode.Nodes["flags"];
+                foreach (string f in flags)
+                {
+                    flagsNode.Nodes.Add(newTreeNode(f, TreeNodeTag.Value));
+                }
+            }
+
+            // populate states
+            if (states.Length != 0)
+            {
+                foreach (string s in states)
+                {
+                    if(s.Equals("SPRITE_META_DATA") || s.Equals("SPRITE_STATE_DEFAULT"))
+                        continue;
+                    treeView.Nodes[0].Nodes.Add(newTreeNode(s, TreeNodeTag.State));
+                }
+            }
+
+            // finalize
+            sortTree();
+            treeView.Nodes[0].ExpandAll();
+            treeView.Nodes[0].BeginEdit();
+        }
+
+        /// <summary>
+        /// Create walking sprite from template.
+        /// </summary>
+        /// <param name="sender">Object that raised the event</param>
+        /// <param name="e">Event arguments.</param>
+        private void templateWalkerMenuItem_Click(object sender, EventArgs e)
+        {
+            // confirmUnsavedChanges with user that unsaved changed will be lost
+            if (confirmUnsavedChanges() == DialogResult.Cancel) return;
+
+            string[] actions = { "walk", "death" };
+            string[] flags = { "doFadeOut" };
+            string[] states = {
+                                "SPRITE_STATE_WALK_LEFT", "SPRITE_STATE_WALK_RIGHT",
+                                "SPRITE_STATE_JUMP_LEFT", "SPRITE_STATE_JUMP_RIGHT",
+                                "SPRITE_STATE_DESTROY_LEFT", "SPRITE_STATE_DESTROY_RIGHT"
+                              };
+
+            newSpriteFromTemplate(actions, flags, states);
+        }
+
+        /// <summary>
+        /// Create flying sprite from template.
+        /// </summary>
+        /// <param name="sender">Object that raised the event</param>
+        /// <param name="e">Event arguments.</param>
+        private void flyerToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            // confirmUnsavedChanges with user that unsaved changed will be lost
+            if (confirmUnsavedChanges() == DialogResult.Cancel) return;
+
+            string[] actions = { "fly", "death" };
+            string[] flags = { "doFadeOut" };
+            string[] states = {
+                                "SPRITE_STATE_FLY_LEFT", "SPRITE_STATE_FLY_RIGHT",
+                                "SPRITE_STATE_DESTROY_LEFT", "SPRITE_STATE_DESTROY_RIGHT"
+                              };
+
+            newSpriteFromTemplate(actions, flags, states);
+        }
+
+        /// <summary>
+        /// Create prop/item sprite from template.
+        /// </summary>
+        /// <param name="sender">Object that raised the event</param>
+        /// <param name="e">Event arguments.</param>
+        private void templatePropMenuItem_Click(object sender, EventArgs e)
+        {
+            // confirmUnsavedChanges with user that unsaved changed will be lost
+            if (confirmUnsavedChanges() == DialogResult.Cancel) return;
+
+            string[] actions = { };
+            string[] flags = { "disableSpriteCollide" };
+            string[] states = { };
+
+            newSpriteFromTemplate(actions, flags, states);
+        }
+
+        private void hideToolbarToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            toolBar.Visible = toolBar.Visible != true;
+            hideToolbarToolStripMenuItem.Text = toolBar.Visible ? "Hide Toolbar" : "Show Toolbar";
+        }
+
+        private void newFileToolStripButton_ButtonClick(object sender, EventArgs e)
+        {
+            fileNewSpriteWizardMenuItem_Click(newFileToolStripButton, null);
+        }
+
+        private void treeView_Validate(object sender, NodeLabelEditEventArgs e)
+        {
+            validateTree();
+        }
+
+        private void validateTree()
+        {
+            List<string> errors = validate();
+            if(errors.Count == 0)
+            {
+                errorIndicator.Image = Properties.Resources.validate24x24;
+                errorIndicator.ToolTipText = "No errors found.";
+                errorList.Text = "No errors found.";
+            }
+            else
+            {
+                errorIndicator.Image = Properties.Resources.error24x24;
+                errorIndicator.ToolTipText = errors.Count + " errors found.";
+                StringBuilder sb = new StringBuilder();
+                sb.Append("[" + errors.Count + "] errors found.\n");
+
+                for (int i = 0; i < errors.Count; i++)
+                    sb.Append("\n" + (i + 1) + ")  " + errors[i]);
+
+                errorList.Text = sb.ToString();
+            }
+        }
+
+        private void toolsValidateSpriteMenuItem_MouseEnter(object sender, EventArgs e)
+        {
+            statusLabel.Text = "Validate currently loaded sprite and view detailed errors.";
+        }
+
+        private void toolsOpenSpriteCollectionMenuItem_MouseEnter(object sender, EventArgs e)
+        {
+            statusLabel.Text = "Open sprite collection folder in explorer.";
+        }
+
+        private void viewZoomInMenuItem_MouseEnter(object sender, EventArgs e)
+        {
+            statusLabel.Text = "Zoom in on current image.";
+        }
+
+        private void viewZoomOutMenuItem_MouseEnter(object sender, EventArgs e)
+        {
+            statusLabel.Text = "Zoom out current image.";
+        }
+
+        private void viewActualSizeMenuItem_MouseEnter(object sender, EventArgs e)
+        {
+            statusLabel.Text = "Reset image to original size.";
+        }
+
+        private void viewShowErrorListMenuItem_MouseEnter(object sender, EventArgs e)
+        {
+            statusLabel.Text = "Toggle error list visibility.";
+        }
+
+        private void hideToolbarToolStripMenuItem_MouseEnter(object sender, EventArgs e)
+        {
+            statusLabel.Text = "Toggle toolbar visibility.";
+        }
+
+        private void viewHideTreeMenuItem_MouseEnter(object sender, EventArgs e)
+        {
+            statusLabel.Text = "Toggle tree visibility.";
+        }
+
+        private void fileOpenMenuItem_MouseEnter(object sender, EventArgs e)
+        {
+            statusLabel.Text = "Import sprite file";
+        }
+
+        private void fileSaveMenuItem_MouseEnter(object sender, EventArgs e)
+        {
+            statusLabel.Text = "Save current sprite";
+        }
+
+        private void fileExitMenuItem_MouseEnter(object sender, EventArgs e)
+        {
+            statusLabel.Text = "Exit sprite editor";
+        }
+
+        private void fileNewEmptySpriteMenuItem_MouseEnter(object sender, EventArgs e)
+        {
+            statusLabel.Text = "Create new blank sprite file.";
+        }
+
+        private void fileNewSpriteWizardMenuItem_MouseEnter(object sender, EventArgs e)
+        {
+            statusLabel.Text = "Create new sprite file using sprite wizard.";
+        }
+
+        private void fileNewFromTemplateMenuItem_MouseEnter(object sender, EventArgs e)
+        {
+            statusLabel.Text = "Create new sprite from template.";
+        }
+
+        private void templateWalkerMenuItem_MouseEnter(object sender, EventArgs e)
+        {
+            statusLabel.Text = "Create new sprite from IceAge's walk template.";
+        }
+
+        private void templateFlyerMenuItem_MouseEnter(object sender, EventArgs e)
+        {
+            statusLabel.Text = "Create new sprite from IceAge's flyer template.";
+        }
+
+        private void templatePropMenuItem_MouseEnter(object sender, EventArgs e)
+        {
+            statusLabel.Text = "Create new sprite from IceAge's Item/Prop template.";
         }
     }
 }

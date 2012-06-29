@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Windows.Forms;
 using System.Diagnostics;
 
@@ -11,11 +12,22 @@ namespace SpriteEditor
         public List<string> _actions;
         public List<string> _flags;
         public List<string> _states;
-        public List<CheckBox> _checkBoxes;
 
-        public frmWizard()
+        /// <summary>
+        /// Initializes and loads new instance of frmWizard
+        /// </summary>
+        /// <param name="possibleActions">List of valid actions</param>
+        /// <param name="possibleFlags">List of valid Flags</param>
+        /// <param name="possibleStates">List of valid States</param>
+        public frmWizard(IEnumerable<string> possibleActions, IEnumerable<string> possibleFlags, IEnumerable<string> possibleStates)
         {
             InitializeComponent();
+            foreach (string a in possibleActions)
+                actionsCheckedListBox.Items.Add(a);
+            foreach (string f in possibleFlags)
+                flagsCheckedListBox.Items.Add(f);
+            foreach (string stateless in possibleStates.Where(s => !s.Equals("SPRITE_META_DATA") && !s.Equals("SPRITE_STATE_DEFAULT")).Select(s => s.Replace("SPRITE_STATE_", "")))
+                statesCheckedListBox.Items.Add(stateless);
         }
 
         /// <summary>
@@ -29,16 +41,6 @@ namespace SpriteEditor
             _actions = new List<string>();
             _flags = new List<string>();
             _states = new List<string>();
-            _checkBoxes = new List<CheckBox>();
-
-            foreach (Control c in this.Controls)
-            {
-                if (c is CheckBox)
-                {
-                    _checkBoxes.Add((CheckBox)c);
-                }
-                Debug.WriteLine(_checkBoxes.Count);
-            } 
         }
 
         /// <summary>
@@ -66,70 +68,18 @@ namespace SpriteEditor
                 _spriteInfo.Add("url", infoURL.Text);
 
             // validate and process ACTIONS
-            if (actionWalk.Checked)
-            {
-                _actions.Add("walk");
-                _states.Add("SPRITE_STATE_WALK_LEFT");
-                _states.Add("SPRITE_STATE_WALK_RIGHT");
-            }
-            if (actionFly.Checked)
-            {
-                _actions.Add("fly");
-                _states.Add("SPRITE_STATE_FLY_LEFT");
-                _states.Add("SPRITE_STATE_FLY_RIGHT");
-            }
-            if (actionRun.Checked)
-            {
-                _actions.Add("run");
-                _states.Add("SPRITE_STATE_RUN_LEFT");
-                _states.Add("SPRITE_STATE_RUN_RIGHT");
-            }
-            if (actionJump.Checked)
-            {
-                _actions.Add("jump");
-                _states.Add("SPRITE_STATE_JUMP_LEFT");
-                _states.Add("SPRITE_STATE_JUMP_RIGHT");
-            }
-            if (actionDestroy.Checked)
-            {
-                _actions.Add("destroy");
-                _states.Add("SPRITE_STATE_DESTROY_LEFT");
-                _states.Add("SPRITE_STATE_DESTROY_RIGHT");
-            }
-            if (actionDeath.Checked)
-            {
-                _actions.Add("death");
-            }
+            foreach (string a in actionsCheckedListBox.CheckedItems)
+                _actions.Add(a);
 
             // validate and parse FLAGS
-            if (flagIsCollector.Checked)
-                _flags.Add("isCollector");
-            if (flagIsItem.Checked)
-                _flags.Add("isItem");
-            if (flagDisablePhysics.Checked)
-                _flags.Add("disablePhysics");
-            if (flagDisableWindowCollide.Checked)
-                _flags.Add("disableWindowCollide");
-            if (flagDisableSpriteCollide.Checked)
-                _flags.Add("disableSpriteCollide");
-            if (flagDisableJump.Checked)
-                _flags.Add("disableJump");
-            if (flagDoFadeOut.Checked)
-                _flags.Add("doFadeOut");
+            foreach (string f in flagsCheckedListBox.CheckedItems)
+                _flags.Add(f);
 
-            // validate and parse STATES
-            if (stateStand.Checked)
-            {
-                _states.Add("SPRITE_STATE_STAND_LEFT");
-                _states.Add("SPRITE_STATE_STAND_RIGHT");
-            }
+            // validate and parse FLAGS
+            foreach (string s in statesCheckedListBox.CheckedItems)
+                _states.Add("SPRITE_STATE_" + s);
 
             DialogResult = DialogResult.OK;
-        }
-
-        private void buttonWalker_Click(object sender, EventArgs e)
-        {
-
         }
     }
 }

@@ -60,20 +60,6 @@ namespace SpriteEditor.Properties {
             }
         }
         
-        public static System.Drawing.Bitmap _2391_ZoomOut {
-            get {
-                object obj = ResourceManager.GetObject("_2391_ZoomOut", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-        
-        public static System.Drawing.Bitmap _2392_ZoomIn_48x48 {
-            get {
-                object obj = ResourceManager.GetObject("_2392_ZoomIn_48x48", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-        
         public static System.Drawing.Bitmap check {
             get {
                 object obj = ResourceManager.GetObject("check", resourceCulture);
@@ -102,9 +88,9 @@ namespace SpriteEditor.Properties {
             }
         }
         
-        public static System.Drawing.Bitmap errorList {
+        public static System.Drawing.Bitmap error24x24 {
             get {
-                object obj = ResourceManager.GetObject("errorList", resourceCulture);
+                object obj = ResourceManager.GetObject("error24x24", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
@@ -137,9 +123,9 @@ namespace SpriteEditor.Properties {
             }
         }
         
-        public static System.Drawing.Bitmap help {
+        public static System.Drawing.Bitmap help24x24 {
             get {
-                object obj = ResourceManager.GetObject("help", resourceCulture);
+                object obj = ResourceManager.GetObject("help24x24", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
@@ -207,16 +193,16 @@ namespace SpriteEditor.Properties {
             }
         }
         
-        public static System.Drawing.Bitmap validate {
+        public static System.Drawing.Bitmap tree {
             get {
-                object obj = ResourceManager.GetObject("validate", resourceCulture);
+                object obj = ResourceManager.GetObject("tree", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
         
-        public static System.Drawing.Bitmap XSDSchema_GraphLeftToRight {
+        public static System.Drawing.Bitmap validate24x24 {
             get {
-                object obj = ResourceManager.GetObject("XSDSchema_GraphLeftToRight", resourceCulture);
+                object obj = ResourceManager.GetObject("validate24x24", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
@@ -224,6 +210,20 @@ namespace SpriteEditor.Properties {
         public static System.Drawing.Bitmap XSDSchema_NameSpaceIcon {
             get {
                 object obj = ResourceManager.GetObject("XSDSchema_NameSpaceIcon", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        public static System.Drawing.Bitmap ZoomIn {
+            get {
+                object obj = ResourceManager.GetObject("ZoomIn", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        public static System.Drawing.Bitmap ZoomOut {
+            get {
+                object obj = ResourceManager.GetObject("ZoomOut", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

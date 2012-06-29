@@ -130,5 +130,17 @@ namespace SpriteEditor.Properties {
                 this["lastOpenedImageDir"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool toolBarVisibility {
+            get {
+                return ((bool)(this["toolBarVisibility"]));
+            }
+            set {
+                this["toolBarVisibility"] = value;
+            }
+        }
     }
 }
